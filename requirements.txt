@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+motor
+python-dotenv
+pydantic
+pydantic-settings
+redis
+pytest
+pytest-asyncio
