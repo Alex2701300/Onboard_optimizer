@@ -54,7 +54,7 @@ async def test_setups_operations(mongodb):
     assert setup is not None
     assert setup["type"] == "stinger"
 
-    await mongodb.setups.delete_one({"_id": result.inserted_id})
+    await mongodb.setups.delete_one({"_id": result.inserted_id})one({"_id": result.inserted_id})
 
 @pytest.mark.asyncio
 async def test_loading_experience_operations(mongodb):
