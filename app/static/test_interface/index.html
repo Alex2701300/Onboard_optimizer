@@ -452,3 +452,98 @@
                                         label="Model"
                                         value={truckForm.model}
                                         onChange={(value) => setTruckForm({...truckForm, model: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Year"
+                                        type="number"
+                                        value={truckForm.year}
+                                        onChange={(value) => setTruckForm({...truckForm, year: value})}
+                                        required
+                                        min="1900"
+                                        max={new Date().getFullYear() + 1}
+                                    />
+                                    <SelectField
+                                        label="Type"
+                                        value={truckForm.type}
+                                        onChange={(value) => setTruckForm({...truckForm, type: value})}
+                                        options={[
+                                            { value: 'semi', label: 'Semi' },
+                                            { value: 'box', label: 'Box' },
+                                            { value: 'dump', label: 'Dump' },
+                                            { value: 'flatbed', label: 'Flatbed' },
+                                            { value: 'other', label: 'Other' }
+                                        ]}
+                                    />
+                                </div>
+                                <div>
+                                    <SelectField
+                                        label="Coupling Type"
+                                        value={truckForm.coupling_type}
+                                        onChange={(value) => setTruckForm({...truckForm, coupling_type: value})}
+                                        options={[
+                                            { value: 'none', label: 'None' },
+                                            { value: 'fifth_wheel', label: 'Fifth Wheel' },
+                                            { value: 'gooseneck', label: 'Gooseneck' },
+                                            { value: 'pintle_hook', label: 'Pintle Hook' }
+                                        ]}
+                                    />
+                                    <InputField 
+                                        label="GVWR (lbs)"
+                                        type="number"
+                                        value={truckForm.gvwr}
+                                        onChange={(value) => setTruckForm({...truckForm, gvwr: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Loading Spots"
+                                        type="number"
+                                        value={truckForm.loading_spots}
+                                        onChange={(value) => setTruckForm({...truckForm, loading_spots: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Deck Count"
+                                        type="number"
+                                        value={truckForm.deck_count}
+                                        onChange={(value) => setTruckForm({...truckForm, deck_count: value})}
+                                        required
+                                    />
+                                    <div className="checkbox-field">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={truckForm.has_platforms} 
+                                            onChange={(e) => setTruckForm({...truckForm, has_platforms: e.target.checked})} 
+                                        />
+                                        <label>Has Platforms</label>
+                                    </div>
+                                </div>
+                            </div>
+                            {truckForm.has_platforms && (
+                                <div className="platform-section">
+                                    <h3 className="section-title">Platform Configuration</h3>
+                                    {/* ... Platform configuration inputs ... */}
+                                </div>
+                            )}
+                            <button type="submit" className="button">Add Truck</button>
+                        </form>
+                    )}
+
+
+                    {/* Trailer Form */}
+                    {activeTab === 'trailer' && (
+                        <form className="form-section">
+                            <h2>Add Trailer</h2>
+                            {/* ... Trailer form inputs ... */}
+                            <button type="submit" className="button">Add Trailer</button>
+                        </form>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<VehicleManager />);
+    </script>
+</body>
+</html>
