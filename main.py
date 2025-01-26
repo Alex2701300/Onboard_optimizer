@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # Монтируем статические файлы
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static", html=True), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
