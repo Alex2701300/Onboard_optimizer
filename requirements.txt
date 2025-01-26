@@ -10,3 +10,6 @@ pytest-asyncio
 aiofiles
 fastapi
 uvicorn
+aiofiles
+fastapi
+uvicorn
