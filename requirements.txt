@@ -7,3 +7,6 @@ pydantic-settings
 redis
 pytest
 pytest-asyncio
+aiofiles
+fastapi
+uvicorn
