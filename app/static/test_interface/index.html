@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarLogix Vehicle Manager</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+    <style>
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-field {
+            margin-bottom: 15px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .input:focus, select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+        }
+
+        .button {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        .button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 10px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6b7280;
+            position: relative;
+        }
+
+        .tab.active {
+            color: #2563eb;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -11px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #2563eb;
+        }
+
+        .platform-section {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background-color: #f9fafb;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #374151;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 0.875em;
+            margin-top: 4px;
+        }
+
+        .success-message {
+            color: #059669;
+            font-size: 0.875em;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const InputField = ({ label, type = "text", value, onChange, required = false, min, max }) => (
+            <div className="form-field">
+                <label>{label}</label>
+                <input
+                    type={type}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    required={required}
+                    min={min}
+                    max={max}
+                    className="input"
+                />
+            </div>
+        );
+
+        const SelectField = ({ label, options, value, onChange, required = false }) => (
+            <div className="form-field">
+                <label>{label}</label>
+                <select 
+                    value={value} 
+                    onChange={(e) => onChange(e.target.value)}
+                    required={required}
+                    className="input"
+                >
+                    {options.map(option => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        );
+
+        const VehicleManager = () => {
+            const [activeTab, setActiveTab] = React.useState('car');
+            const [message, setMessage] = React.useState({ type: '', text: '' });
+
+            // Car form state
+            const [carForm, setCarForm] = React.useState({
+                vin: '',
+                make: '',
+                model: '',
+                year: '',
+                length: '',
+                width: '',
+                height: '',
+                wheelbase: '',
+                body_type: 'sedan',
+                status: 'run_and_drive'
+            });
+
+            // Truck form state
+            const [truckForm, setTruckForm] = React.useState({
+                nickname: '',
+                make: '',
+                model: '',
+                year: '',
+                type: 'semi',
+                coupling_type: 'none',
+                gvwr: '',
+                loading_spots: '0',
+                deck_count: '1',
+                has_platforms: false
+            });
+
+            // Platform configuration state (for trucks with platforms)
+            const [platformConfig, setPlatformConfig] = React.useState({
+                upper_deck: {
+                    platforms: [],
+                    total_length: ''
+                },
+                lower_deck: {
+                    platforms: [],
+                    total_length: ''
+                }
+            });
+
+            const handleCarSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await fetch('/api/vehicles', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            type: 'car',
+                            ...carForm
+                        }),
+                    });
+
+                    if (response.ok) {
+                        setMessage({ type: 'success', text: 'Car added successfully!' });
+                        setCarForm({
+                            vin: '',
+                            make: '',
+                            model: '',
+                            year: '',
+                            length: '',
+                            width: '',
+                            height: '',
+                            wheelbase: '',
+                            body_type: 'sedan',
+                            status: 'run_and_drive'
+                        });
+                    } else {
+                        setMessage({ type: 'error', text: 'Failed to add car.' });
+                    }
+                } catch (error) {
+                    setMessage({ type: 'error', text: 'Error submitting form.' });
+                }
+            };
+
+            const handleTruckSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await fetch('/api/vehicles', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            type: 'truck',
+                            ...truckForm,
+                            platforms: truckForm.has_platforms ? platformConfig : null
+                        }),
+                    });
+
+                    if (response.ok) {
+                        setMessage({ type: 'success', text: 'Truck added successfully!' });
+                        setTruckForm({
+                            nickname: '',
+                            make: '',
+                            model: '',
+                            year: '',
+                            type: 'semi',
+                            coupling_type: 'none',
+                            gvwr: '',
+                            loading_spots: '0',
+                            deck_count: '1',
+                            has_platforms: false
+                        });
+                        setPlatformConfig({
+                            upper_deck: { platforms: [], total_length: '' },
+                            lower_deck: { platforms: [], total_length: '' }
+                        });
+                    } else {
+                        setMessage({ type: 'error', text: 'Failed to add truck.' });
+                    }
+                } catch (error) {
+                    setMessage({ type: 'error', text: 'Error submitting form.' });
+                }
+            };
+
+            return (
+                <div className="container">
+                    <h1>CarLogix Vehicle Manager</h1>
+
+                    {message.text && (
+                        <div className={`message ${message.type}`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <div className="tabs">
+                        <button 
+                            className={`tab ${activeTab === 'car' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('car')}
+                        >
+                            Cars
+                        </button>
+                        <button 
+                            className={`tab ${activeTab === 'truck' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('truck')}
+                        >
+                            Trucks
+                        </button>
+                        <button 
+                            className={`tab ${activeTab === 'trailer' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('trailer')}
+                        >
+                            Trailers
+                        </button>
+                    </div>
+
+                    {/* Car Form */}
+                    {activeTab === 'car' && (
+                        <form onSubmit={handleCarSubmit} className="form-section">
+                            <h2>Add Car</h2>
+                            <div className="form-grid">
+                                <div>
+                                    <InputField 
+                                        label="VIN"
+                                        value={carForm.vin}
+                                        onChange={(value) => setCarForm({...carForm, vin: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Make"
+                                        value={carForm.make}
+                                        onChange={(value) => setCarForm({...carForm, make: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Model"
+                                        value={carForm.model}
+                                        onChange={(value) => setCarForm({...carForm, model: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Year"
+                                        type="number"
+                                        value={carForm.year}
+                                        onChange={(value) => setCarForm({...carForm, year: value})}
+                                        required
+                                        min="1900"
+                                        max={new Date().getFullYear() + 1}
+                                    />
+                                    <InputField 
+                                        label="Length (inches)"
+                                        type="number"
+                                        value={carForm.length}
+                                        onChange={(value) => setCarForm({...carForm, length: value})}
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <InputField 
+                                        label="Width (inches)"
+                                        type="number"
+                                        value={carForm.width}
+                                        onChange={(value) => setCarForm({...carForm, width: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Height (inches)"
+                                        type="number"
+                                        value={carForm.height}
+                                        onChange={(value) => setCarForm({...carForm, height: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Wheelbase (inches)"
+                                        type="number"
+                                        value={carForm.wheelbase}
+                                        onChange={(value) => setCarForm({...carForm, wheelbase: value})}
+                                        required
+                                    />
+                                    <SelectField
+                                        label="Body Type"
+                                        value={carForm.body_type}
+                                        onChange={(value) => setCarForm({...carForm, body_type: value})}
+                                        options={[
+                                            { value: 'sedan', label: 'Sedan' },
+                                            { value: 'suv', label: 'SUV' },
+                                            { value: 'hatchback', label: 'Hatchback' },
+                                            { value: 'full_size_suv', label: 'Full Size SUV' },
+                                            { value: 'van', label: 'Van' },
+                                            { value: 'pickup', label: 'Pickup' },
+                                            { value: 'utility_truck', label: 'Utility Truck' }
+                                        ]}
+                                    />
+                                    <SelectField
+                                        label="Status"
+                                        value={carForm.status}
+                                        onChange={(value) => setCarForm({...carForm, status: value})}
+                                        options={[
+                                            { value: 'run_and_drive', label: 'Run & Drive' },
+                                            { value: 'inoperable_rolling', label: 'Inoperable - Rolling' },
+                                            { value: 'inoperable_stuck', label: 'Inoperable - Stuck' },
+                                            { value: 'no_keys', label: 'No Keys' }
+                                        ]}
+                                    />
+                                </div>
+                            </div>
+                            <button type="submit" className="button">Add Car</button>
+                        </form>
+                    )}
+
+                    {/* Truck Form */}
+                    {activeTab === 'truck' && (
+                        <form onSubmit={handleTruckSubmit} className="form-section">
+                            <h2>Add Truck</h2>
+                            <div className="form-grid">
+                                <div>
+                                    <InputField 
+                                        label="Nickname"
+                                        value={truckForm.nickname}
+                                        onChange={(value) => setTruckForm({...truckForm, nickname: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Make"
+                                        value={truckForm.make}
+                                        onChange={(value) => setTruckForm({...truckForm, make: value})}
+                                        required
+                                    />
+                                    <InputField 
+                                        label="Model"
+                                        value={truckForm.model}
+                                        onChange={(value) => setTruckForm({...truckForm, model: value})}
