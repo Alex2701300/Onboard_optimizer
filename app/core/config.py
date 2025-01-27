@@ -1,6 +1,9 @@
 from pydantic import BaseSettings
 from functools import lru_cache
 from typing import Dict
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Settings(BaseSettings):
     APP_NAME: str = "AI-Loading Optimizer"
