@@ -50,7 +50,7 @@ class ChainConfiguration(BaseModel):
     # но это логика; тут можно и поле vehicle_categories, если нужно.
 
 class PlatformEdge(BaseModel):
-    position: str = Field(..., regex="^[AB]$")
+    position: str = Field(..., pattern="^[AB]$")
     type: str = Field(..., description="static/mobile и т.п.")
     height_ft: float = Field(..., gt=0, description="Edge height in feet (!!!)")
     # load_overhang, deeping, etc. - опускаем для примера
