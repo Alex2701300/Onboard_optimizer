@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel
 from app.models.enums import CarBodyType, CarStatus, DataSource
-from pymongo.objectid import ObjectId
+from bson import ObjectId
 
 class CarDimensions(BaseModel):
     length: Decimal
