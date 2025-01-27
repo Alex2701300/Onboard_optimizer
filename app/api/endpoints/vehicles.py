@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, JSONResponse
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
+from fastapi.encoders import jsonable_encoder
 
 from app.db.mongodb import db  # Синглтон MongoDB (db.vehicles и т.д.)
 
