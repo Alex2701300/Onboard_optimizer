@@ -13,3 +13,4 @@ pymongo==4.5.0
 bson
 python-dotenv
 pydantic-settings
+python-dotenv

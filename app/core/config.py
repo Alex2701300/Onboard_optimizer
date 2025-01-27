@@ -1,22 +1,17 @@
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import Dict
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 
-class Settings(BaseSettings):
-    APP_NAME: str = "AI-Loading Optimizer"
-    DEBUG: bool = False
-    MONGODB_URL: str
-    MONGODB_DB_NAME: str = "Carlogix_loading"
-
-    model_config = SettingsConfigDict(
-        env_file='.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
+class Settings:
+    def __init__(self):
+        self.APP_NAME = "AI-Loading Optimizer"
+        self.DEBUG = False
+        self.MONGODB_URL = os.getenv('MONGODB_URL')
+        self.MONGODB_DB_NAME = "Carlogix_loading"
 
 @lru_cache()
 def get_settings():
