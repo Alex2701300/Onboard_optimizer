@@ -121,6 +121,8 @@ class VehicleCreate(BaseModel):
 # Ответ при создании
 ################################################################################
 
+from bson import ObjectId
+
 class VehicleResponse(BaseModel):
     id: str
     type: str
@@ -130,6 +132,9 @@ class VehicleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            ObjectId: str
+        }
 
 ################################################################################
 # Роутер
