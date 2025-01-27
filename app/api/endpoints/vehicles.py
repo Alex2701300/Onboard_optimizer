@@ -155,7 +155,7 @@ async def list_vehicles():
         responses.append(VehicleResponse(
             id=str(d["_id"]),
             type=d.get("type", "unknown"),
-            data=d,
+            data=jsonable_encoder(d),
             created_at=d["created_at"],
             updated_at=d["updated_at"]
         ))
