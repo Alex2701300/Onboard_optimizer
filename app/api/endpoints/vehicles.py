@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, JSONResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
