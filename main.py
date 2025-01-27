@@ -1,6 +1,6 @@
 # main.py
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.encoders import jsonable_encoder
 from bson import ObjectId
@@ -47,6 +47,17 @@ app = FastAPI(
     default_response_class=HTMLResponse,
     json_encoder=CustomJSONEncoder
 )
+
+@app.middleware("http")
+async def log_errors(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        print(f"ERROR TYPE: {type(e)}")
+        import traceback
+        print(f"TRACEBACK: {traceback.format_exc()}")
+        raise e
 
 # Разрешаем CORS:
 app.add_middleware(
