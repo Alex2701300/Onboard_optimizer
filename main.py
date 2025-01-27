@@ -22,12 +22,15 @@ async def lifespan(app: FastAPI):
     Новый подход Lifespan Events вместо @app.on_event("startup"/"shutdown").
     """
     # Это будет выполняться при запуске приложения:
-    await db.connect_to_database()
-
+    connected = await db.connect_to_database()
+    if not connected:
+        logger.error("Failed to connect to MongoDB. Application might not work properly.")
+    
     yield  # <-- точка, где приложение «работает»
 
     # Это будет выполняться при остановке приложения:
-    await db.close_database_connection()
+    if connected:
+        await db.close_database_connection()
 
 
 # Custom JSON encoder for ObjectId

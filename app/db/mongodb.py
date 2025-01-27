@@ -19,9 +19,16 @@ class MongoDB:
     async def connect_to_database(self):
         """Инициализирует подключение к MongoDB и настраивает коллекции"""
         try:
-            self.client = AsyncIOMotorClient(settings.MONGODB_URL)
+            logger.info(f"Connecting to MongoDB URL: {settings.MONGODB_URL}")
+            self.client = AsyncIOMotorClient(
+                settings.MONGODB_URL,
+                serverSelectionTimeoutMS=5000
+            )
+            # Проверка соединения
+            await self.client.admin.command('ping')
+            
             self.db = self.client[settings.MONGODB_DB_NAME]
-
+            
             # Инициализация коллекций
             self.vehicles = self.db.vehicles
             self.setups = self.db.setups
@@ -35,7 +42,9 @@ class MongoDB:
 
         except Exception as e:
             logger.error(f"Database connection failed: {str(e)}")
-            raise e
+            self.client = None
+            self.db = None
+            return False
 
     async def _create_indexes(self):
         """Создает необходимые индексы для оптимизации запросов"""
