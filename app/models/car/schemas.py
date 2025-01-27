@@ -1,9 +1,9 @@
-
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
 from pydantic import BaseModel
 from app.models.enums import CarBodyType, CarStatus, DataSource
+from pymongo.objectid import ObjectId
 
 class CarDimensions(BaseModel):
     length: Decimal
@@ -27,7 +27,7 @@ class CarLotData(BaseModel):
     order_number: Optional[str] = None
 
 class CarResponseSchema(BaseModel):
-    _id: str
+    _id: ObjectId
     year: int
     make: str
     model: str
@@ -43,7 +43,7 @@ class CarResponseSchema(BaseModel):
     last_modified_by: Optional[str] = None
 
     class Config:
-        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
         json_encoders = {
             ObjectId: str
         }
