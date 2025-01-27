@@ -150,16 +150,13 @@ async def list_vehicles():
     Получить список всех ТС (car/truck/trailer)
     """
     docs = await db.list_vehicles()
-    return [
-        VehicleResponse(
-            id=str(doc["_id"]),
-            type=doc.get("type", "unknown"),
-            data={k: str(v) if isinstance(v, ObjectId) else v for k, v in doc.items()},
-            created_at=doc["created_at"],
-            updated_at=doc["updated_at"]
-        )
-        for doc in docs
-    ]
+    return JSONResponse(content=[{
+        "id": str(doc["_id"]),
+        "type": doc.get("type", "unknown"),
+        "data": {k: str(v) if isinstance(v, ObjectId) else v for k, v in doc.items()},
+        "created_at": doc["created_at"].isoformat() if doc.get("created_at") else None,
+        "updated_at": doc["updated_at"].isoformat() if doc.get("updated_at") else None
+    } for doc in docs])
 
 @router.get("/vehicles/{vehicle_id}", response_model=VehicleResponse)
 async def get_vehicle(vehicle_id: str):
