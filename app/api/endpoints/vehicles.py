@@ -165,7 +165,7 @@ async def get_vehicle(vehicle_id: str):
     return VehicleResponse(
         id=str(doc["_id"]),
         type=doc["type"],
-        data=doc,
+        data={k: str(v) if k == "_id" else v for k, v in doc.items()},
         created_at=doc["created_at"],
         updated_at=doc["updated_at"]
     )
