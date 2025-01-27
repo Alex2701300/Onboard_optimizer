@@ -92,7 +92,8 @@ class MongoDB:
             await self.client.close()
             logger.info("MongoDB connection closed")
 
-    # Методы для Vehicles (универсальные)
+    # -------------------- Методы для Vehicles (универсальные) --------------------
+
     async def create_vehicle(self, vehicle_data: Dict[str, Any]) -> str:
         """Создает новую запись транспортного средства"""
         try:
@@ -100,6 +101,17 @@ class MongoDB:
             return str(result.inserted_id)
         except Exception as e:
             logger.error(f"Error creating vehicle: {str(e)}")
+            raise e
+
+    async def list_vehicles(self) -> List[Dict[str, Any]]:
+        """
+        Возвращает список всех транспортных средств (документы из коллекции vehicles).
+        """
+        try:
+            cursor = self.vehicles.find({})
+            return await cursor.to_list(length=None)
+        except Exception as e:
+            logger.error(f"Error listing vehicles: {str(e)}")
             raise e
 
     async def get_vehicle(self, vehicle_id: str) -> Optional[Dict[str, Any]]:
@@ -132,7 +144,8 @@ class MongoDB:
             logger.error(f"Error deleting vehicle {vehicle_id}: {str(e)}")
             return False
 
-    # Специфичные методы для Truck
+    # -------------------- Специфичные методы для Truck --------------------
+
     async def get_truck_configuration(self, truck_id: str) -> Optional[Dict[str, Any]]:
         """Получает полную конфигурацию грузовика"""
         try:
@@ -164,7 +177,6 @@ class MongoDB:
             logger.error(f"Error updating truck platforms {truck_id}: {str(e)}")
             return False
 
-    # Дополнительный метод, чтобы обновлять конфигурацию цепей:
     async def update_chain_configuration(
         self,
         truck_id: str,
@@ -189,7 +201,8 @@ class MongoDB:
             logger.error(f"Error updating chain config for {truck_id}: {str(e)}")
             return False
 
-    # Методы для работы с Loading Experience
+    # -------------------- Методы для работы с Loading Experience --------------------
+
     async def log_loading_experience(self, experience_data: Dict[str, Any]) -> str:
         """Логирует опыт загрузки"""
         try:
@@ -211,7 +224,8 @@ class MongoDB:
             logger.error(f"Error getting loading history for {truck_id}: {str(e)}")
             return []
 
-    # Методы для работы с Setups
+    # -------------------- Методы для работы с Setups --------------------
+
     async def save_configuration(self, config_data: Dict[str, Any]) -> str:
         """Сохраняет конфигурацию загрузки"""
         try:
@@ -228,6 +242,7 @@ class MongoDB:
         except Exception as e:
             logger.error(f"Error getting configuration {config_id}: {str(e)}")
             return None
+
 
 # Инициализация синглтона
 db = MongoDB()
