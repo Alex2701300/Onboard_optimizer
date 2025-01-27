@@ -27,7 +27,7 @@ class CarLotData(BaseModel):
     order_number: Optional[str] = None
 
 class CarResponseSchema(BaseModel):
-    id: str
+    _id: str
     year: int
     make: str
     model: str
@@ -41,6 +41,12 @@ class CarResponseSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_modified_by: Optional[str] = None
+
+    class Config:
+        allow_population_by_field_name = True
+        json_encoders = {
+            ObjectId: str
+        }
 
 class CarCreateSchema(BaseModel):
     year: int

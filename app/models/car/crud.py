@@ -33,6 +33,9 @@ class CarCRUD:
             new_doc["_id"] = str(new_doc["_id"])
             if "model" not in new_doc:
                 new_doc["model"] = ""  # или другое значение по умолчанию
+            # Convert _id to string before passing to schema
+            if "_id" in new_doc:
+                new_doc["_id"] = str(new_doc["_id"])
             return CarResponseSchema(**new_doc)
         return None
 
