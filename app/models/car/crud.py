@@ -29,7 +29,10 @@ class CarCRUD:
         await coll.insert_one(doc)
         new_doc = await coll.find_one({"_id": doc["_id"]})
         if new_doc:
-            # Конвертируем в CarResponseSchema
+            # Убедимся что _id это строка и добавим model если отсутствует
+            new_doc["_id"] = str(new_doc["_id"])
+            if "model" not in new_doc:
+                new_doc["model"] = ""  # или другое значение по умолчанию
             return CarResponseSchema(**new_doc)
         return None
 
