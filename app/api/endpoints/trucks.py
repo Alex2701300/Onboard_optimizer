@@ -1,13 +1,10 @@
-# app/api/endpoints/trucks.py
-
 from fastapi import APIRouter, HTTPException
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 
-from app.models.truck.schemas import (
-    TruckCreateSchema,
-    TruckResponseSchema,
-    VehicleCategory
-)
+from app.models.truck.schemas import TruckCreateSchema, TruckResponseSchema
+# ВАЖНО: VehicleCategory не в schemas, а в enums:
+from app.models.enums import VehicleCategory
+
 from app.models.truck.crud import truck_crud
 from app.services.height_calculator import HeightCalculationService
 
@@ -18,7 +15,7 @@ async def list_trucks():
     """
     Список всех грузовиков в базе.
     """
-    trucks = await truck_crud.list_trucks()  # Предполагается, что есть метод list_trucks()
+    trucks = await truck_crud.list_trucks()  # метод list_trucks() в truck/crud.py
     return trucks
 
 @router.post("/", response_model=TruckResponseSchema)
@@ -50,6 +47,7 @@ async def update_truck(truck_id: str, update_data: Dict[str, Any]):
     Обновление данных грузовика (например, nickname, year и т.д.)
     """
     try:
+        # у вас может быть метод update_truck или update_truck_configuration
         updated = await truck_crud.update_truck_configuration(truck_id, update_data)
         if not updated:
             raise HTTPException(status_code=404, detail="Truck not found or not updated")
@@ -81,13 +79,17 @@ async def calculate_effective_height(truck_id: str, vehicle_category: VehicleCat
     # Предположим, что truck содержит поля upper_deck, lower_deck и т.д.
     adjusted_results = []
 
+    # Если у вас DeckSchema и PlatformSchema — truck.upper_deck.platforms и т.д.
+    # (зависит от того, как вы храните/возвращаете)
+
     for deck_name in ["upper_deck", "lower_deck"]:
         deck_data = getattr(truck, deck_name, None)
         if deck_data and deck_data.platforms:
-            # Перебираем все платформы
             for platform in deck_data.platforms:
-                # Преобразуем в словарь, чтобы прокинуть в сервис
+                # platform.dict() — зависит от того, что возвращает truckCrud
+                # если truck возвращается как Pydantic-модель, можно просто platform.dict()
                 platform_dict = platform.dict()
+                # вызываем сервис
                 adjusted = await HeightCalculationService.calculate_adjusted_heights(
                     platform_data=platform_dict,
                     vehicle_category=vehicle_category

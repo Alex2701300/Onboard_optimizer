@@ -1,5 +1,3 @@
-# app/api/endpoints/trailers.py
-
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 

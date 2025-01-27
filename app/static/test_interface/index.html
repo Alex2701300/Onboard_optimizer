@@ -13,15 +13,23 @@
     body {
       margin: 0;
       padding: 16px;
-      font-family: sans-serif;
+      font-family: "Segoe UI", Roboto, sans-serif;
       background: #f5f5f5;
+      color: #333;
     }
-    h1 {
-      margin-bottom: 16px;
+    h1, h2, h3 {
+      margin-top: 0;
     }
     .tabs button {
       margin-right: 8px;
       padding: 8px 16px;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .tabs button:hover {
+      background: #f0f0f0;
     }
     .card {
       background: #fff;
@@ -47,15 +55,24 @@
     label {
       display: block;
       font-weight: bold;
-      margin: 4px 0;
+      margin: 4px 0 2px;
     }
-    input, select, textarea {
-      width: 100%;
+    input, select, textarea, button {
       margin-bottom: 8px;
       padding: 6px;
     }
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+    }
     button {
       cursor: pointer;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #eee;
     }
     .sub-block {
       border: 1px solid #ccc;
@@ -81,78 +98,124 @@
   <script type="text/babel">
 
     // ------------------------------ UTILS ------------------------------
+    // Проверка подключения к БД - вызываем /api/cars (GET) 
+    // (если вернёт 200 или 404, считаем "ок", иначе ошибка)
     async function checkDB() {
       try {
-        const res = await fetch("/api/vehicles");
-        if (!res.ok) throw new Error("Status=" + res.status);
+        const res = await fetch("/api/cars");
+        if (!res.ok && res.status !== 404) {
+          throw new Error("Status=" + res.status);
+        }
         return "MongoDB connected ✔";
       } catch (err) {
         return "DB error: " + err.message;
       }
     }
 
-    async function fetchAllVehicles() {
-      const res = await fetch("/api/vehicles");
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Fetch error");
-      }
-      return await res.json();
-    }
-
-    async function fetchOneVehicle(id) {
-      const res = await fetch("/api/vehicles/" + id);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Fetch error");
-      }
-      return await res.json();
-    }
-
-    async function createVehicle(payload) {
-      const res = await fetch("/api/vehicles", {
+    // ------------------------------ CARS CRUD ------------------------------
+    async function createCar(payload) {
+      const res = await fetch("/api/cars", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Creation error");
+        throw new Error(err.detail || "Create car error");
+      }
+      return await res.json();
+    }
+    async function listCars() {
+      const res = await fetch("/api/cars");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "List cars error");
       }
       return await res.json();
     }
 
-    async function updateVehicle(id, updates) {
-      const res = await fetch("/api/vehicles/" + id, {
+    // ------------------------------ TRUCKS CRUD ------------------------------
+    async function createTruck(payload) {
+      const res = await fetch("/api/trucks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Create truck error");
+      }
+      return await res.json();
+    }
+    async function listTrucks() {
+      const res = await fetch("/api/trucks");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "List trucks error");
+      }
+      return await res.json();
+    }
+    async function getTruck(truck_id) {
+      const res = await fetch("/api/trucks/" + truck_id);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Get truck error");
+      }
+      return await res.json();
+    }
+    async function updateTruck(truck_id, updates) {
+      const res = await fetch("/api/trucks/" + truck_id, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Update error");
+        throw new Error(err.detail || "Update truck error");
       }
       return await res.json();
     }
-
-    async function deleteVehicle(id) {
-      const res = await fetch("/api/vehicles/" + id, {
+    async function deleteTruck(truck_id) {
+      const res = await fetch("/api/trucks/" + truck_id, {
         method: "DELETE"
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.detail || "Delete error");
+        throw new Error(err.detail || "Delete truck error");
       }
       return true;
     }
+
+    // ------------------------------ TRAILERS CRUD ------------------------------
+    async function createTrailer(payload) {
+      const res = await fetch("/api/trailers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Create trailer error");
+      }
+      return await res.json();
+    }
+    async function listTrailers() {
+      const res = await fetch("/api/trailers");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "List trailers error");
+      }
+      return await res.json();
+    }
+
 
     // ------------------------------ CAR TAB ------------------------------
     function CarTab() {
       const [msg, setMsg] = React.useState("");
       const [form, setForm] = React.useState({
-        vin: "",
-        make: "",
-        car_model: "",
+        vin: "1G1YZ26E895111766",
+        make: "Ford",
+        model: "Focus",
         year: "2023",
         length_in: "200",
         width_in: "80",
@@ -164,10 +227,9 @@
         e.preventDefault();
         setMsg("");
         const payload = {
-          type: "car",
           vin: form.vin,
           make: form.make,
-          car_model: form.car_model,
+          model: form.model,
           year: parseInt(form.year, 10),
           length_in: parseFloat(form.length_in),
           width_in: parseFloat(form.width_in),
@@ -175,19 +237,8 @@
           wheelbase_in: parseFloat(form.wheelbase_in)
         };
         try {
-          const data = await createVehicle(payload);
+          const data = await createCar(payload);
           setMsg("Car created! ID=" + data.id);
-          // Reset
-          setForm({
-            vin: "",
-            make: "",
-            car_model: "",
-            year: "2023",
-            length_in: "200",
-            width_in: "80",
-            height_ft: "5",
-            wheelbase_in: "110"
-          });
         } catch (err) {
           setMsg("Error: " + err.message);
         }
@@ -212,8 +263,8 @@
             />
             <label>Model</label>
             <input
-              value={form.car_model}
-              onChange={(e) => setForm({ ...form, car_model: e.target.value })}
+              value={form.model}
+              onChange={(e) => setForm({ ...form, model: e.target.value })}
               required
             />
             <label>Year</label>
@@ -245,9 +296,7 @@
             <input
               type="number"
               value={form.wheelbase_in}
-              onChange={(e) =>
-                setForm({ ...form, wheelbase_in: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, wheelbase_in: e.target.value })}
             />
             <button type="submit">Create Car</button>
           </form>
@@ -259,8 +308,8 @@
     function TrailerTab() {
       const [msg, setMsg] = React.useState("");
       const [form, setForm] = React.useState({
-        trailer_nickname: "",
-        trailer_year: "2023",
+        nickname: "My Trailer",
+        year: "2023",
         capacity_in: "500"
       });
 
@@ -268,19 +317,13 @@
         e.preventDefault();
         setMsg("");
         const payload = {
-          type: "trailer",
-          trailer_nickname: form.trailer_nickname,
-          trailer_year: parseInt(form.trailer_year, 10),
+          nickname: form.nickname,
+          year: parseInt(form.year, 10),
           capacity_in: parseFloat(form.capacity_in)
         };
         try {
-          const data = await createVehicle(payload);
+          const data = await createTrailer(payload);
           setMsg("Trailer created! ID=" + data.id);
-          setForm({
-            trailer_nickname: "",
-            trailer_year: "2023",
-            capacity_in: "500"
-          });
         } catch (err) {
           setMsg("Error: " + err.message);
         }
@@ -293,28 +336,22 @@
           <form onSubmit={handleSubmit}>
             <label>Nickname</label>
             <input
-              value={form.trailer_nickname}
-              onChange={(e) =>
-                setForm({ ...form, trailer_nickname: e.target.value })
-              }
+              value={form.nickname}
+              onChange={(e) => setForm({ ...form, nickname: e.target.value })}
               required
             />
             <label>Year</label>
             <input
               type="number"
-              value={form.trailer_year}
-              onChange={(e) =>
-                setForm({ ...form, trailer_year: e.target.value })
-              }
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
               required
             />
             <label>Capacity (inches?)</label>
             <input
               type="number"
               value={form.capacity_in}
-              onChange={(e) =>
-                setForm({ ...form, capacity_in: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, capacity_in: e.target.value })}
             />
             <button type="submit">Create Trailer</button>
           </form>
@@ -322,72 +359,22 @@
       );
     }
 
-    // ------------------------- TRUCK SUB-FORMS (Edges, Slides, Joints, etc.) -------------------------
-
-    function SlideEditor({ slide, onChange }) {
-      const handle = (field, val) => {
-        onChange({ ...slide, [field]: val });
-      };
-      return (
-        <div className="sub-block">
-          <div className="sub-title">Slide</div>
-          <label>Type</label>
-          <select
-            value={slide.type || "none"}
-            onChange={(e) => handle("type", e.target.value)}
-          >
-            <option value="none">None</option>
-            <option value="platform_slide">Platform Slide</option>
-            <option value="a_slide">A Slide</option>
-            <option value="b_slide">B Slide</option>
-          </select>
-
-          <label>Min Length (inches)</label>
-          <input
-            type="number"
-            value={slide.min_length || ""}
-            onChange={(e) => handle("min_length", parseFloat(e.target.value) || 0)}
-          />
-
-          <label>Max Length (inches)</label>
-          <input
-            type="number"
-            value={slide.max_length || ""}
-            onChange={(e) => handle("max_length", parseFloat(e.target.value) || 0)}
-          />
-
-          <label>Min Distance (inches)</label>
-          <input
-            type="number"
-            value={slide.min_distance || ""}
-            onChange={(e) => handle("min_distance", parseFloat(e.target.value) || 0)}
-          />
-
-          <label>Max Distance (inches)</label>
-          <input
-            type="number"
-            value={slide.max_distance || ""}
-            onChange={(e) => handle("max_distance", parseFloat(e.target.value) || 0)}
-          />
-        </div>
-      );
-    }
-
+    // ------------------------------ FULL TRUCK EDITOR (Deck/Platform/Edge) ------------------------------
+    // 1. Editor for Edge
     function EdgeEditor({ edge, onChangeEdge }) {
-      const handle = (field, val) => {
-        onChangeEdge({ ...edge, [field]: val });
+      const handle = (field, value) => {
+        onChangeEdge({ ...edge, [field]: value });
       };
-
       return (
         <div className="sub-block" style={{ background: "#fafce7" }}>
-          <div className="sub-title">Edge {edge.position || "?"}</div>
-          <label>Edge Position (A/B)</label>
+          <div className="sub-title">Edge {edge.position || ""}</div>
+          <label>Position (A/B)</label>
           <input
             value={edge.position || ""}
             onChange={(e) => handle("position", e.target.value)}
           />
 
-          <label>Edge Type</label>
+          <label>Type (mobile/static)</label>
           <select
             value={edge.type || "static"}
             onChange={(e) => handle("type", e.target.value)}
@@ -396,8 +383,7 @@
             <option value="static">static</option>
           </select>
 
-          {/* For static edges, we store `height`. For mobile edges, `min_height` / `max_height`. */}
-          <label>Height (if static, in inches)</label>
+          <label>Height (if static, inches)</label>
           <input
             type="number"
             value={edge.height || ""}
@@ -418,7 +404,7 @@
             onChange={(e) => handle("max_height", parseFloat(e.target.value) || 0)}
           />
 
-          <label>Open Edge?</label>
+          <label>Is Open Edge?</label>
           <input
             type="checkbox"
             checked={edge.is_open || false}
@@ -442,27 +428,75 @@
       );
     }
 
-    function PlatformEditor({ platform, onChangePlatform, onRemovePlatform }) {
+    // 2. Editor for Slide
+    function SlideEditor({ slide, onChangeSlide }) {
+      const handle = (field, value) => {
+        onChangeSlide({ ...slide, [field]: value });
+      };
+      return (
+        <div className="sub-block" style={{ background: "#f0faff" }}>
+          <div className="sub-title">Slide</div>
+          <label>Type</label>
+          <select
+            value={slide.type || "none"}
+            onChange={(e) => handle("type", e.target.value)}
+          >
+            <option value="none">none</option>
+            <option value="platform_slide">platform_slide</option>
+            <option value="a_slide">a_slide</option>
+            <option value="b_slide">b_slide</option>
+          </select>
+
+          <label>Min Length</label>
+          <input
+            type="number"
+            value={slide.min_length || ""}
+            onChange={(e) => handle("min_length", parseFloat(e.target.value) || 0)}
+          />
+
+          <label>Max Length</label>
+          <input
+            type="number"
+            value={slide.max_length || ""}
+            onChange={(e) => handle("max_length", parseFloat(e.target.value) || 0)}
+          />
+
+          <label>Min Distance</label>
+          <input
+            type="number"
+            value={slide.min_distance || ""}
+            onChange={(e) => handle("min_distance", parseFloat(e.target.value) || 0)}
+          />
+
+          <label>Max Distance</label>
+          <input
+            type="number"
+            value={slide.max_distance || ""}
+            onChange={(e) => handle("max_distance", parseFloat(e.target.value) || 0)}
+          />
+        </div>
+      );
+    }
+
+    // 3. Editor for Platform
+    function PlatformEditor({ platform, onChangePlatform, onRemove }) {
       const handle = (field, val) => {
         onChangePlatform({ ...platform, [field]: val });
       };
 
-      const handleEdgeA = (updated) => {
-        onChangePlatform({ ...platform, edge_a: updated });
-      };
-      const handleEdgeB = (updated) => {
-        onChangePlatform({ ...platform, edge_b: updated });
-      };
-      const handleSlide = (updated) => {
-        onChangePlatform({ ...platform, slide: updated });
-      };
+      const handleEdgeA = (upd) => handle("edge_a", upd);
+      const handleEdgeB = (upd) => handle("edge_b", upd);
+      const handleSlide = (upd) => handle("slide", upd);
 
       return (
-        <div className="sub-block" style={{ background: "#f0faff" }}>
+        <div className="sub-block" style={{ background: "#fffdf0" }}>
           <div className="sub-title">
             Platform {platform.id || ""}{" "}
-            <button type="button" onClick={onRemovePlatform}>Remove Platform</button>
+            <button type="button" onClick={onRemove} style={{ float: "right" }}>
+              Remove
+            </button>
           </div>
+
           <label>Platform ID</label>
           <input
             value={platform.id || ""}
@@ -489,17 +523,22 @@
           <input
             type="number"
             value={platform.default_length || ""}
-            onChange={(e) =>
-              handle("default_length", parseFloat(e.target.value) || 0)
-            }
+            onChange={(e) => handle("default_length", parseFloat(e.target.value) || 0)}
           />
 
-          <EdgeEditor edge={platform.edge_a} onChangeEdge={handleEdgeA} />
-          <EdgeEditor edge={platform.edge_b} onChangeEdge={handleEdgeB} />
+          {/* Edges */}
+          <h4>Edge A</h4>
+          <EdgeEditor edge={platform.edge_a || {}} onChangeEdge={handleEdgeA} />
+          <h4>Edge B</h4>
+          <EdgeEditor edge={platform.edge_b || {}} onChangeEdge={handleEdgeB} />
 
-          <label>Slide (optional)</label>
+          {/* Slide */}
+          <h4>Slide (optional)</h4>
           {platform.slide ? (
-            <SlideEditor slide={platform.slide} onChange={handleSlide} />
+            <SlideEditor
+              slide={platform.slide}
+              onChangeSlide={handleSlide}
+            />
           ) : (
             <button
               type="button"
@@ -520,15 +559,22 @@
       );
     }
 
-    function JointEditor({ joint, onChangeJoint, onRemoveJoint }) {
+    // 4. Editor for Joint
+    function JointEditor({ joint, onChangeJoint, onRemove }) {
       const handle = (field, val) => {
         onChangeJoint({ ...joint, [field]: val });
       };
       return (
-        <div className="sub-block" style={{ background: "#fdf0f0" }}>
+        <div className="sub-block" style={{ background: "#fafafa" }}>
           <div className="sub-title">
-            Joint: {joint.type || ""}{" "}
-            <button type="button" onClick={onRemoveJoint}>Remove Joint</button>
+            Joint: {joint.type || ""}
+            <button
+              type="button"
+              onClick={onRemove}
+              style={{ float: "right" }}
+            >
+              Remove
+            </button>
           </div>
           <label>Type</label>
           <select
@@ -543,31 +589,31 @@
             <option value="turning_joint">turning_joint</option>
           </select>
 
-          <label>Platform A</label>
+          <label>Platform A ID</label>
           <input
             value={joint.platform_a || ""}
             onChange={(e) => handle("platform_a", e.target.value)}
           />
 
-          <label>Platform B</label>
+          <label>Platform B ID</label>
           <input
             value={joint.platform_b || ""}
             onChange={(e) => handle("platform_b", e.target.value)}
           />
 
-          <label>Edge A (A/B?)</label>
+          <label>Edge A (A/B)</label>
           <input
             value={joint.edge_a || ""}
             onChange={(e) => handle("edge_a", e.target.value)}
           />
 
-          <label>Edge B (A/B?)</label>
+          <label>Edge B (A/B)</label>
           <input
             value={joint.edge_b || ""}
             onChange={(e) => handle("edge_b", e.target.value)}
           />
 
-          <label>Minimum Loading Distance (inches)</label>
+          <label>Minimum Loading Distance</label>
           <input
             type="number"
             value={joint.minimum_loading_distance || ""}
@@ -576,58 +622,30 @@
             }
           />
 
-          <label>Max Overlap (inches)</label>
+          <label>Max Overlap</label>
           <input
             type="number"
             value={joint.max_overlap || ""}
-            onChange={(e) =>
-              handle("max_overlap", parseFloat(e.target.value) || 0)
-            }
-          />
-
-          <label>Static Height (inches)</label>
-          <input
-            type="number"
-            value={joint.static_height || ""}
-            onChange={(e) =>
-              handle("static_height", parseFloat(e.target.value) || 0)
-            }
+            onChange={(e) => handle("max_overlap", parseFloat(e.target.value) || 0)}
           />
         </div>
       );
     }
 
+    // 5. Editor for Deck
     function DeckEditor({ deck, onChangeDeck, onRemoveDeck }) {
-      const handle = (field, val) => {
-        onChangeDeck({ ...deck, [field]: val });
+      const handle = (field, value) => {
+        onChangeDeck({ ...deck, [field]: value });
       };
-
+      // Platforms
       const addPlatform = () => {
         const newPlatform = {
-          id: "PLAT-" + (deck.platforms.length + 1),
+          id: "Plat" + (deck.platforms.length + 1),
           deck_type: deck.type || "upper_deck",
           position: deck.platforms.length + 1,
           default_length: 240,
-          edge_a: {
-            position: "A",
-            type: "static",
-            height: 50,
-            min_height: null,
-            max_height: null,
-            is_open: false,
-            load_overhang: 0,
-            deeping: 0
-          },
-          edge_b: {
-            position: "B",
-            type: "static",
-            height: 50,
-            min_height: null,
-            max_height: null,
-            is_open: false,
-            load_overhang: 0,
-            deeping: 0
-          },
+          edge_a: { position: "A", type: "static", height: 50 },
+          edge_b: { position: "B", type: "static", height: 50 },
           slide: null
         };
         onChangeDeck({
@@ -635,50 +653,49 @@
           platforms: [...deck.platforms, newPlatform]
         });
       };
-
       const removePlatform = (idx) => {
         const newPlats = [...deck.platforms];
         newPlats.splice(idx, 1);
         onChangeDeck({ ...deck, platforms: newPlats });
       };
-
-      const handlePlatformChange = (idx, updated) => {
+      const handlePlatformChange = (idx, upd) => {
         const newPlats = [...deck.platforms];
-        newPlats[idx] = updated;
+        newPlats[idx] = upd;
         onChangeDeck({ ...deck, platforms: newPlats });
       };
 
+      // Joints
       const addJoint = () => {
         const newJoint = {
           type: "static_joint",
           platform_a: "",
           platform_b: "",
-          edge_a: "",
-          edge_b: ""
+          edge_a: "A",
+          edge_b: "B"
         };
         onChangeDeck({
           ...deck,
           joints: [...deck.joints, newJoint]
         });
       };
-
       const removeJoint = (idx) => {
         const newJs = [...deck.joints];
         newJs.splice(idx, 1);
         onChangeDeck({ ...deck, joints: newJs });
       };
-
-      const handleJointChange = (idx, updated) => {
+      const handleJointChange = (idx, upd) => {
         const newJs = [...deck.joints];
-        newJs[idx] = updated;
+        newJs[idx] = upd;
         onChangeDeck({ ...deck, joints: newJs });
       };
 
       return (
-        <div className="sub-block" style={{ background: "#fffdf0" }}>
+        <div className="sub-block" style={{ background: "#fffae7" }}>
           <div className="sub-title">
-            Deck: {deck.type || "??"}{" "}
-            <button type="button" onClick={onRemoveDeck}>Remove Deck</button>
+            Deck: {deck.type || ""}{" "}
+            <button type="button" onClick={onRemoveDeck} style={{ float: "right" }}>
+              Remove Deck
+            </button>
           </div>
           <label>Deck Type</label>
           <select
@@ -696,486 +713,102 @@
             onChange={(e) => handle("total_length", parseFloat(e.target.value) || 0)}
           />
 
-          <div style={{ marginTop: "6px" }}>
-            <strong>Platforms:</strong>
-            <button type="button" onClick={addPlatform} style={{ marginLeft: "8px" }}>
-              + Add Platform
-            </button>
-          </div>
-          {deck.platforms.map((plat, i) => (
+          <h4>Platforms</h4>
+          <button type="button" onClick={addPlatform}>+ Add Platform</button>
+          {deck.platforms.map((p, i) => (
             <PlatformEditor
               key={i}
-              platform={plat}
+              platform={p}
               onChangePlatform={(upd) => handlePlatformChange(i, upd)}
-              onRemovePlatform={() => removePlatform(i)}
+              onRemove={() => removePlatform(i)}
             />
           ))}
 
-          <div style={{ marginTop: "6px" }}>
-            <strong>Joints:</strong>
-            <button type="button" onClick={addJoint} style={{ marginLeft: "8px" }}>
-              + Add Joint
-            </button>
-          </div>
-          {deck.joints.map((jt, i) => (
+          <h4>Joints</h4>
+          <button type="button" onClick={addJoint}>+ Add Joint</button>
+          {deck.joints.map((j, i) => (
             <JointEditor
               key={i}
-              joint={jt}
+              joint={j}
               onChangeJoint={(upd) => handleJointChange(i, upd)}
-              onRemoveJoint={() => removeJoint(i)}
+              onRemove={() => removeJoint(i)}
             />
           ))}
         </div>
       );
     }
 
-    function VerticalConnectionEditor({ conn, onChangeConnection, onRemove }) {
+    // 6. Editor for VerticalConnection
+    function VerticalConnectionEditor({ vc, onChangeVC, onRemove }) {
       const handle = (field, val) => {
-        onChangeConnection({ ...conn, [field]: val });
+        onChangeVC({ ...vc, [field]: val });
       };
-      const handleClearanceProfile = (text) => {
-        // user might enter "front=72,middle=70,rear=72"
-        // parse into object
-        const obj = {};
+      // parse clearance_profile from text?
+      const parseProfile = (text) => {
+        const out = {};
         text.split(",").forEach((pair) => {
-          const [k,v] = pair.split("=").map(s => s.trim());
-          if (k) {
-            obj[k] = parseFloat(v) || 0;
-          }
+          const [k,v] = pair.split("=").map(x => x.trim());
+          if (k) out[k] = parseFloat(v) || 0;
         });
-        handle("clearance_profile", obj);
+        handle("clearance_profile", out);
       };
+
+      const makeProfileString = () => {
+        if (!vc.clearance_profile) return "";
+        return Object.entries(vc.clearance_profile)
+          .map(([k,v]) => `${k}=${v}`)
+          .join(",");
+      };
+
       return (
-        <div className="sub-block" style={{ background: "#ffeef0" }}>
+        <div className="sub-block" style={{ background: "#ffeaea" }}>
           <div className="sub-title">
-            VerticalConnection
-            <button type="button" onClick={onRemove} style={{ marginLeft: "8px" }}>
+            Vertical Connection
+            <button
+              type="button"
+              onClick={onRemove}
+              style={{ float: "right" }}
+            >
               Remove
             </button>
           </div>
           <label>Upper Platform ID</label>
           <input
-            value={conn.upper_platform_id || ""}
+            value={vc.upper_platform_id || ""}
             onChange={(e) => handle("upper_platform_id", e.target.value)}
           />
 
           <label>Lower Platform ID</label>
           <input
-            value={conn.lower_platform_id || ""}
+            value={vc.lower_platform_id || ""}
             onChange={(e) => handle("lower_platform_id", e.target.value)}
           />
 
           <label>Clearance Profile (like "front=72,middle=68,rear=72")</label>
           <textarea
             rows={2}
-            value={
-              conn.clearance_profile
-                ? Object.entries(conn.clearance_profile)
-                    .map(([k,v]) => `${k}=${v}`)
-                    .join(",")
-                : ""
-            }
-            onChange={(e) => handleClearanceProfile(e.target.value)}
+            value={makeProfileString()}
+            onChange={(e) => parseProfile(e.target.value)}
           />
 
           <label>Min Clearance (inches)</label>
           <input
             type="number"
-            value={conn.min_clearance || ""}
+            value={vc.min_clearance || ""}
             onChange={(e) => handle("min_clearance", parseFloat(e.target.value) || 0)}
           />
         </div>
       );
     }
 
-    // ------------------------------ BIG TRUCK FORM (CREATE/EDIT) ------------------------------
-    function TruckForm() {
-      // базовая часть
-      const [msg, setMsg] = React.useState("");
-      const [editingId, setEditingId] = React.useState(null); // if editing existing truck
-      const [form, setForm] = React.useState({
-        nickname: "",
-        model: "",
-        year: "2023",
-        truck_type: "semi",
-        coupling_type: "none",
-        gvwr: "40000",
-        loading_spots: "0",
-        deck_count: "1",
-        upper_deck: null,
-        lower_deck: null,
-        vertical_connections: []
-      });
-      const [decks, setDecks] = React.useState([]); // array of Deck
-      // each deck = {type:"upper_deck", total_length:0, platforms:[], joints:[]}
-
-      const handleChange = (field, val) => {
-        setForm({ ...form, [field]: val });
-      };
-
-      const addDeck = () => {
-        const newDeck = {
-          type: "upper_deck",
-          total_length: 0,
-          platforms: [],
-          joints: []
-        };
-        setDecks([...decks, newDeck]);
-      };
-
-      const removeDeck = (idx) => {
-        const newDs = [...decks];
-        newDs.splice(idx, 1);
-        setDecks(newDs);
-      };
-
-      const handleDeckChange = (idx, updated) => {
-        const newDs = [...decks];
-        newDs[idx] = updated;
-        setDecks(newDs);
-      };
-
-      const [verticalConns, setVerticalConns] = React.useState([]);
-
-      const addVerticalConn = () => {
-        const newVC = {
-          upper_platform_id: "",
-          lower_platform_id: "",
-          clearance_profile: {},
-          min_clearance: 0
-        };
-        setVerticalConns([...verticalConns, newVC]);
-      };
-
-      const removeVerticalConn = (idx) => {
-        const newVC = [...verticalConns];
-        newVC.splice(idx, 1);
-        setVerticalConns(newVC);
-      };
-
-      const handleVCChange = (idx, updated) => {
-        const newVC = [...verticalConns];
-        newVC[idx] = updated;
-        setVerticalConns(newVC);
-      };
-
-      // Submit
-      const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMsg("");
-        // собираем payload
-        const finalPayload = {
-          type: "truck",
-          nickname: form.nickname,
-          truck_year: parseInt(form.year, 10),
-          truck_model: form.model,
-          truck_type: form.truck_type,
-          coupling_type: form.coupling_type,
-          gvwr_lbs: parseFloat(form.gvwr),
-          loading_spots: parseInt(form.loading_spots, 10),
-          deck_count: parseInt(form.deck_count, 10)
-        };
-        // переводим decks[0] => upper_deck, decks[1] => lower_deck ...
-        if (decks[0]) {
-          finalPayload.upper_deck = decks[0];
-        }
-        if (decks[1]) {
-          finalPayload.lower_deck = decks[1];
-        }
-        if (verticalConns.length > 0) {
-          finalPayload.vertical_connections = verticalConns;
-        }
-
-        try {
-          let data;
-          if (!editingId) {
-            data = await createVehicle(finalPayload);
-          } else {
-            // update existing
-            data = await updateVehicle(editingId, finalPayload);
-          }
-          setMsg((editingId ? "Updated" : "Created") + " Truck ID=" + data.id);
-          // reset
-          setEditingId(null);
-          setForm({
-            nickname: "",
-            model: "",
-            year: "2023",
-            truck_type: "semi",
-            coupling_type: "none",
-            gvwr: "40000",
-            loading_spots: "0",
-            deck_count: "1"
-          });
-          setDecks([]);
-          setVerticalConns([]);
-        } catch (err) {
-          setMsg("Error: " + err.message);
-        }
-      };
-
-      // expose a function to load existing truck
-      const loadTruck = (truckDoc) => {
-        setEditingId(truckDoc.id);
-        const d = truckDoc.data;
-        setForm({
-          nickname: d.nickname,
-          model: d.truck_model,
-          year: d.truck_year+"",
-          truck_type: d.truck_type,
-          coupling_type: d.coupling_type,
-          gvwr: d.gvwr_lbs+"",
-          loading_spots: d.loading_spots+"",
-          deck_count: d.deck_count+""
-        });
-        // parse decks from d.upper_deck, d.lower_deck
-        const ds = [];
-        if (d.upper_deck) ds.push(d.upper_deck);
-        if (d.lower_deck) ds.push(d.lower_deck);
-        setDecks(ds);
-        setVerticalConns(d.vertical_connections || []);
-      };
-
-      // Render
-      return (
-        <div className="card">
-          <h2>{editingId ? "Edit Truck" : "Create Truck"}</h2>
-          {msg && <div>{msg}</div>}
-          <form onSubmit={handleSubmit}>
-            <label>Nickname</label>
-            <input
-              value={form.nickname}
-              onChange={(e) => handleChange("nickname", e.target.value)}
-              required
-            />
-            <label>Model</label>
-            <input
-              value={form.model}
-              onChange={(e) => handleChange("model", e.target.value)}
-              required
-            />
-            <label>Year</label>
-            <input
-              type="number"
-              value={form.year}
-              onChange={(e) => handleChange("year", e.target.value)}
-              required
-            />
-            <label>Truck Type</label>
-            <select
-              value={form.truck_type}
-              onChange={(e) => handleChange("truck_type", e.target.value)}
-            >
-              <option value="semi">semi</option>
-              <option value="stinger_head">stinger_head</option>
-              <option value="stinger_five">stinger_five</option>
-              <option value="semi_platform">semi_platform</option>
-              <option value="pickup">pickup</option>
-              <option value="towtruck">towtruck</option>
-            </select>
-            <label>Coupling Type</label>
-            <select
-              value={form.coupling_type}
-              onChange={(e) => handleChange("coupling_type", e.target.value)}
-            >
-              <option value="none">none</option>
-              <option value="5th_wheel">5th_wheel</option>
-              <option value="gooseneck">gooseneck</option>
-              <option value="bumper_pool">bumper_pool</option>
-            </select>
-            <label>GVWR (lbs)</label>
-            <input
-              type="number"
-              value={form.gvwr}
-              onChange={(e) => handleChange("gvwr", e.target.value)}
-            />
-            <label>Loading Spots</label>
-            <input
-              type="number"
-              value={form.loading_spots}
-              onChange={(e) => handleChange("loading_spots", e.target.value)}
-            />
-            <label>Deck Count (1 or 2)</label>
-            <input
-              type="number"
-              value={form.deck_count}
-              onChange={(e) => handleChange("deck_count", e.target.value)}
-            />
-            <div style={{ marginTop: "8px" }}>
-              <strong>Decks:</strong>{" "}
-              <button type="button" onClick={addDeck}>+ Add Deck</button>
-            </div>
-            {decks.map((dk, i) => (
-              <DeckEditor
-                key={i}
-                deck={dk}
-                onChangeDeck={(upd) => handleDeckChange(i, upd)}
-                onRemoveDeck={() => removeDeck(i)}
-              />
-            ))}
-            <div style={{ marginTop: "8px" }}>
-              <strong>Vertical Connections:</strong>{" "}
-              <button type="button" onClick={addVerticalConn}>+ Add</button>
-            </div>
-            {verticalConns.map((vc, i) => (
-              <VerticalConnectionEditor
-                key={i}
-                conn={vc}
-                onChangeConnection={(upd) => handleVCChange(i, upd)}
-                onRemove={() => removeVerticalConn(i)}
-              />
-            ))}
-            <button type="submit">
-              {editingId ? "Update Truck" : "Create Truck"}
-            </button>
-          </form>
-        </div>
-      );
-    }
-
-    // ------------------------------ VEHICLES LIST (with Edit/Delete) ------------------------------
-    function VehiclesList() {
-      const [items, setItems] = React.useState([]);
-      const [msg, setMsg] = React.useState("");
-      const [selected, setSelected] = React.useState(null); // for displaying details
-
-      const loadAll = async () => {
-        setMsg("Loading...");
-        try {
-          const data = await fetchAllVehicles();
-          setItems(data);
-          setMsg("Loaded " + data.length + " vehicles");
-        } catch (err) {
-          setMsg("Error: " + err.message);
-        }
-      };
-
-      const handleDelete = async (id) => {
-        if (!window.confirm("Really delete vehicle " + id + "?")) return;
-        try {
-          await deleteVehicle(id);
-          setMsg("Deleted vehicle " + id);
-          setItems(items.filter((x) => x.id !== id));
-        } catch (err) {
-          setMsg("Error: " + err.message);
-        }
-      };
-
-      const handleEdit = async (item) => {
-        // item => {id, type, data, created_at...}
-        if (item.type !== "truck") {
-          alert("Editing only implemented for trucks in this UI demo!");
-          return;
-        }
-        // load full doc from DB
-        try {
-          const doc = await fetchOneVehicle(item.id);
-          // doc => {id, type, data, ...}
-          // let’s pass doc to the truck form
-          // We'll trigger a "Truck" tab and set the fields
-          setMsg("Switching to truck form for editing " + item.id);
-          setActiveTab("truck");
-          // a bit hacky: we have a global ref to <TruckForm/>
-          if (window._truckFormRef && window._truckFormRef.loadTruck) {
-            window._truckFormRef.loadTruck(doc);
-          }
-        } catch (err) {
-          setMsg("Error: " + err.message);
-        }
-      };
-
-      return (
-        <div className="card">
-          <h2>All Vehicles (List)</h2>
-          <p>{msg}</p>
-          <div className="inline-btns">
-            <button onClick={loadAll}>Load Vehicles</button>
-          </div>
-          <ul>
-            {items.map((v) => (
-              <li key={v.id} style={{ marginBottom: "8px" }}>
-                <b>Type:</b> {v.type}, <b>ID:</b> {v.id},{" "}
-                <button type="button" onClick={() => setSelected(v)}>Details</button>
-                <button type="button" onClick={() => handleEdit(v)}>Edit</button>
-                <button type="button" onClick={() => handleDelete(v.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-          {selected && (
-            <div style={{ background: "#fff", padding: "8px", marginTop: "8px" }}>
-              <h4>Vehicle details for {selected.id}</h4>
-              <pre style={{ background: "#eee", padding: "8px" }}>
-{JSON.stringify(selected, null, 2)}
-              </pre>
-              <button onClick={() => setSelected(null)}>Close</button>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    // ------------------------------ MAIN APP ------------------------------
-    let setActiveTab = null; // We'll store a reference for editing
-
-    function App() {
-      const [active, _setActive] = React.useState("car");
-      const [dbStatus, setDbStatus] = React.useState("Checking DB...");
-
-      setActiveTab = _setActive; // expose
-
-      React.useEffect(() => {
-        checkDB().then(st => setDbStatus(st));
-      }, []);
-
-      // We keep a ref to the TruckForm instance so we can call loadTruck
-      // from the VehiclesList when user clicks "Edit"
-      const truckFormRef = React.useRef(null);
-
-      React.useEffect(() => {
-        // expose globally for simplicity
-        window._truckFormRef = truckFormRef.current;
-      }, []);
-
-      return (
-        <div>
-          <h1>CarLogix Full Debug Interface</h1>
-          <p style={{ fontStyle: "italic" }}>{dbStatus}</p>
-          <div className="tabs">
-            <button onClick={() => _setActive("car")}>Cars</button>
-            <button onClick={() => _setActive("truck")}>Trucks</button>
-            <button onClick={() => _setActive("trailer")}>Trailers</button>
-            <button onClick={() => _setActive("list")}>Vehicles List</button>
-          </div>
-          {active === "car" && <CarTab />}
-          {active === "truck" && <TruckForm ref={truckFormRef} />}
-          {active === "trailer" && <TrailerTab />}
-          {active === "list" && <VehiclesList />}
-        </div>
-      );
-    }
-
-    // To let us pass a ref to functional TruckForm, we wrap it in forwardRef
-    const TruckFormWrapper = React.forwardRef((props, ref) => {
-      const formRef = React.useRef(null);
-      React.useImperativeHandle(ref, () => ({
-        loadTruck: (doc) => {
-          if (formRef.current && formRef.current.loadTruck) {
-            formRef.current.loadTruck(doc);
-          }
-        }
-      }));
-      return <TruckFullForm ref={formRef} />;
-    });
-
-    // The actual "TruckFullForm" implementing logic
-    function TruckFullForm(props, ref) {
-      // we implement the same code from the big TruckForm above,
-      // but in a functional approach. We'll do the same approach:
+    // 7. Big truck form
+    function TruckFullEditor() {
+      // Editing or Creating
       const [msg, setMsg] = React.useState("");
       const [editingId, setEditingId] = React.useState(null);
       const [form, setForm] = React.useState({
-        nickname: "",
-        model: "",
+        nickname: "FullSpec Truck",
+        model: "Peterbilt 389",
         year: "2023",
         truck_type: "semi",
         coupling_type: "none",
@@ -1186,32 +819,6 @@
       const [decks, setDecks] = React.useState([]);
       const [verticalConns, setVerticalConns] = React.useState([]);
 
-      // expose a method loadTruck
-      const loadTruck = (doc) => {
-        setEditingId(doc.id);
-        const d = doc.data;
-        setForm({
-          nickname: d.nickname || "",
-          model: d.truck_model || "",
-          year: d.truck_year ? String(d.truck_year) : "2023",
-          truck_type: d.truck_type || "semi",
-          coupling_type: d.coupling_type || "none",
-          gvwr: d.gvwr_lbs ? String(d.gvwr_lbs) : "40000",
-          loading_spots: d.loading_spots ? String(d.loading_spots) : "0",
-          deck_count: d.deck_count ? String(d.deck_count) : "1"
-        });
-        const ds = [];
-        if (d.upper_deck) ds.push(d.upper_deck);
-        if (d.lower_deck) ds.push(d.lower_deck);
-        setDecks(ds);
-        setVerticalConns(d.vertical_connections || []);
-        setMsg("Editing existing truck " + doc.id);
-      };
-
-      React.useImperativeHandle(ref, () => ({
-        loadTruck
-      }));
-
       const handleForm = (field, val) => {
         setForm({ ...form, [field]: val });
       };
@@ -1219,7 +826,7 @@
       const addDeck = () => {
         const newDeck = {
           type: "upper_deck",
-          total_length: 0,
+          total_length: 480,
           platforms: [],
           joints: []
         };
@@ -1227,50 +834,47 @@
       };
 
       const removeDeck = (idx) => {
-        const newDs = [...decks];
-        newDs.splice(idx, 1);
-        setDecks(newDs);
+        const newArr = [...decks];
+        newArr.splice(idx, 1);
+        setDecks(newArr);
       };
-
       const handleDeckChange = (idx, updated) => {
-        const newDs = [...decks];
-        newDs[idx] = updated;
-        setDecks(newDs);
+        const arr = [...decks];
+        arr[idx] = updated;
+        setDecks(arr);
       };
 
-      const addVC = () => {
+      const addVerticalConn = () => {
         const newVC = {
           upper_platform_id: "",
           lower_platform_id: "",
           clearance_profile: {},
-          min_clearance: 0
+          min_clearance: 6
         };
         setVerticalConns([...verticalConns, newVC]);
       };
-
       const removeVC = (idx) => {
-        const newVs = [...verticalConns];
-        newVs.splice(idx, 1);
-        setVerticalConns(newVs);
+        const arr = [...verticalConns];
+        arr.splice(idx, 1);
+        setVerticalConns(arr);
       };
-
       const handleVCChange = (idx, updated) => {
-        const newVs = [...verticalConns];
-        newVs[idx] = updated;
-        setVerticalConns(newVs);
+        const arr = [...verticalConns];
+        arr[idx] = updated;
+        setVerticalConns(arr);
       };
 
       const handleSubmit = async (e) => {
         e.preventDefault();
         setMsg("");
+        // build the final payload
         const payload = {
-          type: "truck",
           nickname: form.nickname,
-          truck_model: form.model,
-          truck_year: parseInt(form.year, 10),
+          model: form.model,
+          year: parseInt(form.year, 10),
           truck_type: form.truck_type,
           coupling_type: form.coupling_type,
-          gvwr_lbs: parseFloat(form.gvwr),
+          gvwr: parseFloat(form.gvwr),
           loading_spots: parseInt(form.loading_spots, 10),
           deck_count: parseInt(form.deck_count, 10)
         };
@@ -1279,13 +883,15 @@
         if (verticalConns.length > 0) payload.vertical_connections = verticalConns;
 
         try {
-          let data;
+          let result;
           if (!editingId) {
-            data = await createVehicle(payload);
-            setMsg("Truck created! ID=" + data.id);
+            // create
+            result = await createTruck(payload);
+            setMsg("Created Truck ID=" + result.id);
           } else {
-            data = await updateVehicle(editingId, payload);
-            setMsg("Truck updated! ID=" + data.id);
+            // update
+            result = await updateTruck(editingId, payload);
+            setMsg("Updated Truck ID=" + result.id);
           }
           // reset
           setEditingId(null);
@@ -1306,9 +912,42 @@
         }
       };
 
+      // A function for external load
+      const loadTruck = async (id) => {
+        setMsg("Loading truck " + id + " for editing...");
+        try {
+          const doc = await getTruck(id);
+          setEditingId(doc.id);
+          // doc => truck
+          setForm({
+            nickname: doc.nickname || "",
+            model: doc.model || "",
+            year: doc.year ? String(doc.year) : "2023",
+            truck_type: doc.truck_type || "semi",
+            coupling_type: doc.coupling_type || "none",
+            gvwr: doc.gvwr ? String(doc.gvwr) : "40000",
+            loading_spots: doc.loading_spots ? String(doc.loading_spots) : "0",
+            deck_count: doc.deck_count ? String(doc.deck_count) : "1"
+          });
+          const arrDecks = [];
+          if (doc.upper_deck) arrDecks.push(doc.upper_deck);
+          if (doc.lower_deck) arrDecks.push(doc.lower_deck);
+          setDecks(arrDecks);
+          setVerticalConns(doc.vertical_connections || []);
+          setMsg("Editing truck " + doc.id);
+        } catch (err) {
+          setMsg("Load error: " + err.message);
+        }
+      };
+
+      // expose loadTruck globally for debugging
+      React.useEffect(() => {
+        window._fullTruckLoad = loadTruck;
+      }, []);
+
       return (
         <div className="card">
-          <h2>{editingId ? "Edit Truck" : "Create Truck"} (Full Specification)</h2>
+          <h2>{editingId ? "Edit Truck (Full Spec)" : "Create Truck (Full Spec)"}</h2>
           {msg && <div>{msg}</div>}
           <form onSubmit={handleSubmit}>
             <label>Nickname</label>
@@ -1372,38 +1011,26 @@
             />
 
             {/* Decks */}
-            <div style={{ marginTop: "8px" }}>
-              <strong>Decks:</strong>{" "}
-              <button type="button" onClick={addDeck}>+ Add Deck</button>
-            </div>
+            <h4>Decks</h4>
+            <button type="button" onClick={addDeck}>+ Add Deck</button>
             {decks.map((dk, i) => (
               <DeckEditor
                 key={i}
                 deck={dk}
                 onChangeDeck={(upd) => handleDeckChange(i, upd)}
-                onRemoveDeck={() => {
-                  const newDs = [...decks];
-                  newDs.splice(i, 1);
-                  setDecks(newDs);
-                }}
+                onRemoveDeck={() => removeDeck(i)}
               />
             ))}
 
-            {/* Vertical Connections */}
-            <div style={{ marginTop: "8px" }}>
-              <strong>Vertical Connections:</strong>{" "}
-              <button type="button" onClick={addVC}>+ Add Connection</button>
-            </div>
+            {/* Vertical connections */}
+            <h4>Vertical Connections</h4>
+            <button type="button" onClick={addVerticalConn}>+ Add VerticalConn</button>
             {verticalConns.map((vc, i) => (
               <VerticalConnectionEditor
                 key={i}
-                conn={vc}
-                onChangeConnection={(upd) => handleVCChange(i, upd)}
-                onRemove={() => {
-                  const newVC = [...verticalConns];
-                  newVC.splice(i, 1);
-                  setVerticalConns(newVC);
-                }}
+                vc={vc}
+                onChangeVC={(upd) => handleVCChange(i, upd)}
+                onRemove={() => removeVC(i)}
               />
             ))}
 
@@ -1415,10 +1042,75 @@
       );
     }
 
-    const TruckFormRef = React.forwardRef(TruckFullForm);
+    // ------------------------------ TRUCK CHOICE TABS (Simple vs Full) ------------------------------
+    // Если нужно, мы можем дать две вкладки: SimpleTruckTab / FullTruckTab
+    // Но для краткости используем FullEditor как "TruckTab".
 
-    // ------------------------------ MAIN APP RENDER ------------------------------
-    function MainApp() {
+    // ------------------------------ LIST TAB ------------------------------
+    // Показываем все три типа (cars, trucks, trailers)
+    function ListTab() {
+      const [msg, setMsg] = React.useState("");
+      const [cars, setCars] = React.useState([]);
+      const [trucks, setTrucks] = React.useState([]);
+      const [trailers, setTrailers] = React.useState([]);
+
+      const loadAll = async () => {
+        setMsg("Loading...");
+        try {
+          const c = await listCars();
+          const t = await listTrucks();
+          const r = await listTrailers();
+          setCars(c);
+          setTrucks(t);
+          setTrailers(r);
+          setMsg(`Loaded cars=${c.length}, trucks=${t.length}, trailers=${r.length}`);
+        } catch (err) {
+          setMsg("Error: " + err.message);
+        }
+      };
+
+      React.useEffect(() => {
+        loadAll();
+      }, []);
+
+      return (
+        <div className="card">
+          <h2>List All (Cars, Trucks, Trailers)</h2>
+          {msg && <div>{msg}</div>}
+          <button onClick={loadAll}>Reload</button>
+
+          <h3>Cars</h3>
+          <ul>
+            {cars.map((car) => (
+              <li key={car.id}>
+                ID={car.id}, VIN={car.vin}, Make={car.make}, Year={car.year}
+              </li>
+            ))}
+          </ul>
+
+          <h3>Trucks</h3>
+          <ul>
+            {trucks.map((tk) => (
+              <li key={tk.id}>
+                ID={tk.id}, Nickname={tk.nickname}, Type={tk.truck_type}, Year={tk.year}
+              </li>
+            ))}
+          </ul>
+
+          <h3>Trailers</h3>
+          <ul>
+            {trailers.map((tr) => (
+              <li key={tr.id}>
+                ID={tr.id}, Nickname={tr.nickname}, Year={tr.year}, capacity={tr.capacity_in}
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    // ------------------------------ MAIN APP ------------------------------
+    function App() {
       const [activeTab, setActiveTab] = React.useState("car");
       const [dbStatus, setDbStatus] = React.useState("Checking DB...");
 
@@ -1430,22 +1122,23 @@
         <div>
           <h1>CarLogix Full Debug Interface</h1>
           <p style={{ fontStyle: "italic" }}>{dbStatus}</p>
+
           <div className="tabs">
             <button onClick={() => setActiveTab("car")}>Cars</button>
-            <button onClick={() => setActiveTab("truck")}>Trucks</button>
+            <button onClick={() => setActiveTab("truck")}>Trucks (Full Editor)</button>
             <button onClick={() => setActiveTab("trailer")}>Trailers</button>
-            <button onClick={() => setActiveTab("list")}>Vehicles</button>
+            <button onClick={() => setActiveTab("list")}>List All</button>
           </div>
 
           {activeTab === "car" && <CarTab />}
-          {activeTab === "truck" && <TruckFormRef />}
+          {activeTab === "truck" && <TruckFullEditor />}
           {activeTab === "trailer" && <TrailerTab />}
-          {activeTab === "list" && <VehiclesList />}
+          {activeTab === "list" && <ListTab />}
         </div>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<MainApp />);
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
   </script>
 </body>
 </html>

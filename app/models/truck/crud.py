@@ -2,82 +2,79 @@
 
 import uuid
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 
-from motor.motor_asyncio import AsyncIOMotorCollection
+from app.db.mongodb import db
 from app.models.truck.schemas import TruckCreateSchema, TruckResponseSchema
-from app.db.mongodb import db  # Это ваш MongoDB singleton
 
 class TruckCRUD:
-    def __init__(self, collection: AsyncIOMotorCollection):
-        self.collection = collection
+    """
+    Ленивая логика для trucks. 
+    """
 
-    async def create_truck(self, truck_data: TruckCreateSchema) -> Optional[TruckResponseSchema]:
-        """
-        Создать новый грузовик, храним _id как строку (UUID).
-        """
-        # Преобразуем Pydantic-схему в словарь
-        truck_dict = truck_data.dict()
-        # Генерируем строковый _id
-        truck_id = str(uuid.uuid4())
-        truck_dict["_id"] = truck_id
+    async def create_truck(self, data: TruckCreateSchema) -> Optional[TruckResponseSchema]:
+        coll = db.vehicles
+        if coll is None:
+            raise RuntimeError("MongoDB 'vehicles' is not init.")
 
-        # Укажем type="truck", чтобы отличать
-        truck_dict["type"] = "truck"
+        doc = data.dict()
+        doc["_id"] = str(uuid.uuid4())
+        doc["type"] = "truck"
+        doc["created_at"] = datetime.utcnow()
+        doc["updated_at"] = datetime.utcnow()
+        doc["is_verified"] = False
+        doc["ai_loader_ready"] = False
 
-        # Добавим служебные поля
-        truck_dict.update({
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "is_verified": False,
-            "ai_loader_ready": False
-        })
+        await coll.insert_one(doc)
+        new_doc = await coll.find_one({"_id": doc["_id"]})
+        if new_doc:
+            return TruckResponseSchema(**new_doc)
+        return None
 
-        try:
-            await self.collection.insert_one(truck_dict)
-            # Теперь получаем обратно в формате TruckResponseSchema
-            return await self.get_truck(truck_id)
-        except Exception:
-            return None
+    async def list_trucks(self) -> List[TruckResponseSchema]:
+        coll = db.vehicles
+        if coll is None:
+            raise RuntimeError("MongoDB 'vehicles' is not init.")
+
+        cursor = coll.find({"type": "truck"})
+        docs = await cursor.to_list(None)
+        return [TruckResponseSchema(**d) for d in docs]
 
     async def get_truck(self, truck_id: str) -> Optional[TruckResponseSchema]:
-        """
-        Найти грузовик по _id=truck_id (строка).
-        """
-        doc = await self.collection.find_one({"_id": truck_id, "type": "truck"})
-        if not doc:
-            return None
-        return TruckResponseSchema(**doc)
+        coll = db.vehicles
+        if coll is None:
+            raise RuntimeError("MongoDB 'vehicles' is not init.")
 
-    async def update_truck_configuration(self, truck_id: str, update_data: Dict[str, Any]) -> Optional[TruckResponseSchema]:
-        """
-        Обновить поля в документе. Возвращает TruckResponseSchema или None.
-        """
-        update_data["updated_at"] = datetime.utcnow()
-        result = await self.collection.update_one(
+        doc = await coll.find_one({"_id": truck_id, "type": "truck"})
+        if doc:
+            return TruckResponseSchema(**doc)
+        return None
+
+    async def update_truck(self, truck_id: str, updates: dict) -> Optional[TruckResponseSchema]:
+        coll = db.vehicles
+        if coll is None:
+            raise RuntimeError("MongoDB 'vehicles' is not init.")
+
+        updates["updated_at"] = datetime.utcnow()
+        result = await coll.update_one(
             {"_id": truck_id, "type": "truck"},
-            {"$set": update_data}
+            {"$set": updates}
         )
         if result.modified_count < 1:
             return None
-        # Снова считываем
-        return await self.get_truck(truck_id)
+
+        doc = await coll.find_one({"_id": truck_id, "type": "truck"})
+        if doc:
+            return TruckResponseSchema(**doc)
+        return None
 
     async def delete_truck(self, truck_id: str) -> bool:
-        """
-        Удалить грузовик. Возвращает True, если что-то удалилось.
-        """
-        result = await self.collection.delete_one({"_id": truck_id, "type": "truck"})
+        coll = db.vehicles
+        if coll is None:
+            raise RuntimeError("MongoDB 'vehicles' is not init.")
+
+        result = await coll.delete_one({"_id": truck_id, "type": "truck"})
         return (result.deleted_count > 0)
 
-    async def list_trucks(self) -> List[TruckResponseSchema]:
-        """
-        Вернуть список всех документов, у которых type="truck"
-        """
-        cursor = self.collection.find({"type": "truck"})
-        docs = await cursor.to_list(length=None)
-        # Преобразуем в список TruckResponseSchema
-        return [TruckResponseSchema(**d) for d in docs]
 
-# Инициализируем экземпляр CRUD
-truck_crud = TruckCRUD(db.vehicles)
+truck_crud = TruckCRUD()

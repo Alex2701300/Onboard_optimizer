@@ -1,31 +1,23 @@
 # app/models/trailer/schemas.py
 
+from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional
 
-class TrailerBaseSchema(BaseModel):
-    """
-    Базовые поля для трейлера. 
-    Можно расширять при необходимости (габариты, сцепки и т.д.).
-    """
-    nickname: str = Field(..., min_length=2, description="Имя трейлера (внутреннее)")
-    year: int = Field(..., ge=1900, le=9999)
-    capacity_in: float = Field(..., gt=0, description="Вместимость/длина в дюймах?")
+class TrailerCreateSchema(BaseModel):
+    nickname: str
+    year: int
+    capacity_in: float
 
-class TrailerCreateSchema(TrailerBaseSchema):
-    """
-    Поля для создания трейлера.
-    """
-    pass
+class TrailerResponseSchema(BaseModel):
+    id: str = Field(..., alias="_id")
+    nickname: str
+    year: int
+    capacity_in: float
 
-class TrailerResponseSchema(TrailerBaseSchema):
-    """
-    Ответ при чтении/обновлении. Добавляем служебные поля.
-    """
-    id: str
+    type: str
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        from_attributes = True
+        allow_population_by_field_name = True

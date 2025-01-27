@@ -1,46 +1,49 @@
 # app/models/car/schemas.py
 
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
-##############################################################################
-# CarBaseSchema
-##############################################################################
+#
+# Схема для создания автомобиля (POST /api/cars).
+#
+class CarCreateSchema(BaseModel):
+    vin: str
+    make: str
+    model: str
+    year: int
+    length_in: Optional[float] = None
+    width_in: Optional[float] = None
+    height_ft: Optional[float] = None
+    wheelbase_in: Optional[float] = None
 
-class CarBaseSchema(BaseModel):
-    vin: str = Field(..., min_length=3, description="VIN автомобиля")
-    make: str = Field(..., min_length=2, description="Производитель (марка)")
-    model: str = Field(..., min_length=1, description="Модель")
-    year: int = Field(..., ge=1900, le=9999)
-    length_in: float = Field(..., gt=0, description="Длина (дюймы)")
-    width_in: float = Field(..., gt=0, description="Ширина (дюймы)")
-    height_ft: float = Field(..., gt=0, description="Высота (футы)")
-    wheelbase_in: float = Field(..., gt=0, description="Колёсная база (дюймы)")
 
-##############################################################################
-# Создание (CarCreateSchema)
-##############################################################################
+#
+# Схема для ответа (GET /api/cars, GET /api/cars/{car_id} и т.д.)
+# Поля, которые могут отсутствовать в базе, объявлены Optional.
+# Если _id — ObjectId, Pydantic сконвертирует в str благодаря alias="_id".
+#
+class CarResponseSchema(BaseModel):
+    # MongoDB _id => id:str
+    id: str = Field(..., alias="_id")
 
-class CarCreateSchema(CarBaseSchema):
-    """
-    Поля, которые нужны для создания нового автомобиля.
-    Можно добавить что-то ещё при желании.
-    """
-    pass
+    vin: str
+    make: str
+    model: str
+    year: int
 
-##############################################################################
-# Ответ (CarResponseSchema)
-##############################################################################
+    length_in: Optional[float] = None
+    width_in: Optional[float] = None
+    height_ft: Optional[float] = None
+    wheelbase_in: Optional[float] = None
 
-class CarResponseSchema(CarBaseSchema):
-    """
-    Расширяем базовый набор полей, добавляя служебные.
-    """
-    id: str
-    created_at: datetime
-    updated_at: datetime
+    # Если в документе может не быть 'type' — делаем Optional
+    type: Optional[str] = None
 
-    # В Pydantic 2.x вместо orm_mode
+    # Если в документе могут отсутствовать created_at/updated_at
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
     class Config:
-        from_attributes = True
+        # Разрешаем Pydantic брать поля по alias, чтобы _id -> id
+        allow_population_by_field_name = True
