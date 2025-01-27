@@ -19,7 +19,10 @@ class MongoDB:
     async def connect_to_database(self):
         """Инициализирует подключение к MongoDB и настраивает коллекции"""
         try:
-            logger.info(f"Connecting to MongoDB URL: {settings.MONGODB_URL}")
+            if not settings.MONGODB_URL:
+                logger.error("MONGODB_URL is not set!")
+                return False
+            logger.info(f"Attempting to connect to MongoDB...")
             self.client = AsyncIOMotorClient(
                 settings.MONGODB_URL,
                 serverSelectionTimeoutMS=5000
