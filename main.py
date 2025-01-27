@@ -45,13 +45,18 @@ async def lifespan(app: FastAPI):
     Lifecycle приложения:
     подключаемся к MongoDB при старте, закрываем при остановке.
     """
-    await db.connect_to_database()
-    logger.info("MongoDB connected.")
-
-    yield  # <-- точка, где приложение «работает»
-
-    await db.close_database_connection()
-    logger.info("MongoDB disconnected.")
+    try:
+        connected = await db.connect_to_database()
+        if not connected:
+            raise Exception("Failed to connect to MongoDB")
+        logger.info("MongoDB connected.")
+        yield
+    except Exception as e:
+        logger.error(f"Critical error: {str(e)}")
+        raise
+    finally:
+        await db.close_database_connection()
+        logger.info("MongoDB disconnected.")
 
 
 app = FastAPI(
