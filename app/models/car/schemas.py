@@ -1,3 +1,4 @@
+
 from typing import Optional, List
 from datetime import datetime
 from decimal import Decimal
@@ -27,7 +28,7 @@ class CarLotData(BaseModel):
     order_number: Optional[str] = None
 
 class CarResponseSchema(BaseModel):
-    _id: ObjectId
+    id: str
     year: int
     make: str
     model: str
@@ -43,10 +44,19 @@ class CarResponseSchema(BaseModel):
     last_modified_by: Optional[str] = None
 
     class Config:
-        arbitrary_types_allowed = True
+        allow_population_by_field_name = True
         json_encoders = {
             ObjectId: str
         }
+        
+    @classmethod
+    def from_mongo(cls, data: dict):
+        if not data:
+            return None
+        mongo_id = data.pop('_id', None)
+        if mongo_id:
+            data['id'] = str(mongo_id)
+        return cls(**data)
 
 class CarCreateSchema(BaseModel):
     year: int
