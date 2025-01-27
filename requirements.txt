@@ -12,3 +12,4 @@ aiofiles==23.1.0
 pymongo==4.5.0
 bson
 python-dotenv
+pydantic-settings
