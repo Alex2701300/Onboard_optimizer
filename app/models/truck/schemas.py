@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, validator
 
-# Подключаем перечисления (включая новый VehicleCategory)
+# Перечисления (например, в app/models/enums.py)
 from app.models.enums import (
     TruckType, 
     CouplingType,
@@ -15,9 +15,9 @@ from app.models.enums import (
     VehicleCategory
 )
 
-################################################################################
+##############################################################################
 #                   Базовые и вспомогательные схемы
-################################################################################
+##############################################################################
 
 class ChainConfiguration(BaseModel):
     """
@@ -50,17 +50,17 @@ class PlatformEdgeSchema(BaseModel):
     height: Optional[float] = Field(
         None,
         gt=0,
-        description="Высота (для статичного края)"
+        description="Высота (для статичного края), в дюймах"
     )
     min_height: Optional[float] = Field(
         None,
         gt=0,
-        description="Минимальная высота (для подвижного края)"
+        description="Минимальная высота (для подвижного края), в дюймах"
     )
     max_height: Optional[float] = Field(
         None,
         gt=0,
-        description="Максимальная высота (для подвижного края)"
+        description="Максимальная высота (для подвижного края), в дюймах"
     )
     is_open: bool = False
     load_overhang: Optional[float] = Field(
@@ -80,8 +80,6 @@ class PlatformEdgeSchema(BaseModel):
         description="Конфигурация цепей крепления"
     )
 
-    # Прежние валидаторы для статичного/подвижного края,
-    # либо можно добавить их ниже по аналогии.
     @validator('height', always=True)
     def validate_static_edge(cls, value, values):
         if values.get('type') == EdgeType.STATIC:
@@ -100,8 +98,8 @@ class PlatformEdgeSchema(BaseModel):
 
 class PlatformSlideSchema(BaseModel):
     type: SlideType
-    min_length: float = Field(..., gt=0, description="Минимальная длина платформы (дюймы)")
-    max_length: float = Field(..., gt=0, description="Максимальная длина платформы (дюймы)")
+    min_length: float = Field(..., gt=0, description="Мин. длина платформы (дюймы)")
+    max_length: float = Field(..., gt=0, description="Макс. длина платформы (дюймы)")
     min_distance: float = Field(..., description="Мин. расстояние до соседней платформы (дюймы)")
     max_distance: float = Field(..., description="Макс. расстояние до соседней платформы (дюймы)")
 
@@ -121,7 +119,7 @@ class PlatformSchema(BaseModel):
     position: int = Field(
         ...,
         gt=0,
-        description="Позиция платформы на палубе (начиная с 1,2,3...)"
+        description="Позиция платформы на палубе (1..N)"
     )
     default_length: float = Field(
         ...,
@@ -134,20 +132,13 @@ class PlatformSchema(BaseModel):
 
 class JointSchema(BaseModel):
     type: JointType
-    platform_a_id: str = Field(..., description="ID первой платформы")
-    platform_b_id: str = Field(..., description="ID второй платформы")
-    edge_a: str = Field(
-        ...,
-        regex="^[AB]$",
-        description="Край первой платформы (A/B)"
-    )
-    edge_b: str = Field(
-        ...,
-        regex="^[AB]$",
-        description="Край второй платформы (A/B)"
-    )
+    platform_a: str = Field(..., description="ID первой платформы")
+    platform_b: str = Field(..., description="ID второй платформы")
+    edge_a: str = Field(..., regex="^[AB]$")
+    edge_b: str = Field(..., regex="^[AB]$")
     min_loading_distance: Optional[float] = Field(None, ge=0)
     max_overlap: Optional[float] = Field(None, ge=0)
+    # static_height, etc. при желании
 
 class DeckSchema(BaseModel):
     type: DeckType
@@ -159,7 +150,7 @@ class DeckSchema(BaseModel):
         positions = [p.position for p in v]
         expected = list(range(1, len(v) + 1))
         if sorted(positions) != expected:
-            raise ValueError("Platform positions must form a continuous sequence: 1..N.")
+            raise ValueError("Platform positions must form a continuous sequence 1..N")
         return v
 
 class VerticalConnectionSchema(BaseModel):
@@ -171,45 +162,34 @@ class VerticalConnectionSchema(BaseModel):
     )
     min_clearance: float = Field(..., gt=0)
 
-################################################################################
-#            Логика расчёта высоты с учётом цепей (PlatformHeightAdjustment)
-################################################################################
+##############################################################################
+# Логика расчёта высоты с учётом цепей
+##############################################################################
 
 class PlatformHeightAdjustment(BaseModel):
     """
-    Вспомогательная модель/класс для расчёта итоговой высоты 
-    при использовании цепей в зависимости от категории автомобиля.
+    Вспомогательный класс для расчёта итоговой высоты
+    при использовании цепей в зависимости от категории ТС.
     """
     @classmethod
     def calculate_effective_height(
         cls,
         base_height: float,
-        chains_config: 'ChainConfiguration',
+        chains_config: ChainConfiguration,
         vehicle_category: VehicleCategory
     ) -> float:
-        """
-        Если цепи не используются (is_used=False), высота не меняется.
-        Если категория = ELECTRIC — тоже без изменения.
-        STANDARD — уменьшение на 2 дюйма,
-        PICKUP / FULL_SIZE_SUV — уменьшение на 4 дюйма.
-        """
         if not chains_config.is_used:
             return base_height
-
         if vehicle_category == VehicleCategory.ELECTRIC:
             return base_height
-
-        # По умолчанию для стандартных
         reduction = 2.0
-
         if vehicle_category in [VehicleCategory.PICKUP, VehicleCategory.FULL_SIZE_SUV]:
             reduction = 4.0
-
         return base_height - reduction
 
-################################################################################
-#                       Основная схема для создания Truck
-################################################################################
+##############################################################################
+#                       Основная схема для Truck
+##############################################################################
 
 class TruckBaseSchema(BaseModel):
     nickname: str = Field(..., min_length=2, max_length=50)
@@ -217,7 +197,7 @@ class TruckBaseSchema(BaseModel):
     model: str = Field(..., min_length=2, max_length=50)
     truck_type: TruckType
     coupling_type: CouplingType
-    gvwr: float = Field(..., gt=0, description="Полная масса ТС (фунты)")
+    gvwr: float = Field(..., gt=0, description="Полная масса (фунты)")
 
 class TruckCreateSchema(TruckBaseSchema):
     loading_spots: int = Field(0, ge=0)
@@ -225,11 +205,10 @@ class TruckCreateSchema(TruckBaseSchema):
     upper_deck: Optional[DeckSchema] = None
     lower_deck: Optional[DeckSchema] = None
     vertical_connections: Optional[List[VerticalConnectionSchema]] = None
-
-    # Дополнительное поле для описания цепей на уровне "грузовик" (если нужно)
+    # Опционально: словарь цепей
     chain_configurations: Dict[str, List[str]] = Field(
         default_factory=dict,
-        description="Например: {platform_id: [A,B]}, какие края используют цепи"
+        description="Пример: {platform_id: [A,B]} – какие края используют цепи"
     )
 
 class TruckResponseSchema(TruckBaseSchema):
@@ -240,5 +219,5 @@ class TruckResponseSchema(TruckBaseSchema):
     ai_loader_ready: bool
 
     class Config:
-        # Заменяем orm_mode = True  ->  from_attributes = True
+        # В Pydantic 2.x вместо orm_mode
         from_attributes = True

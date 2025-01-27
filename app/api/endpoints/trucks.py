@@ -8,10 +8,18 @@ from app.models.truck.schemas import (
     TruckResponseSchema,
     VehicleCategory
 )
-from app.models.truck.crud import truck_crud  # Предположим, что CRUD импортируется так
+from app.models.truck.crud import truck_crud
 from app.services.height_calculator import HeightCalculationService
 
 router = APIRouter(prefix="/trucks", tags=["trucks"])
+
+@router.get("/", response_model=List[TruckResponseSchema])
+async def list_trucks():
+    """
+    Список всех грузовиков в базе.
+    """
+    trucks = await truck_crud.list_trucks()  # Предполагается, что есть метод list_trucks()
+    return trucks
 
 @router.post("/", response_model=TruckResponseSchema)
 async def create_truck(truck_data: TruckCreateSchema):
@@ -58,10 +66,6 @@ async def delete_truck(truck_id: str):
     if not deleted:
         raise HTTPException(status_code=404, detail="Truck not found")
     return {"message": "Truck deleted successfully"}
-
-################################################################################
-# Новый эндпоинт для расчёта эффективной высоты с учётом цепей
-################################################################################
 
 @router.post("/{truck_id}/calculate-height")
 async def calculate_effective_height(truck_id: str, vehicle_category: VehicleCategory):

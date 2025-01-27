@@ -8,13 +8,17 @@ from json import JSONEncoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import logging
 
 # Импорт вашего синглтона для MongoDB
 from app.db.mongodb import db
 
-# Предположим, ваш основной роутер описан здесь:
-from app.api.endpoints.vehicles import router as vehicles_router
+# Импортируем роутеры
+from app.api.endpoints.cars import router as cars_router
+from app.api.endpoints.trucks import router as trucks_router
+from app.api.endpoints.trailers import router as trailers_router
 
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,7 +29,7 @@ async def lifespan(app: FastAPI):
     connected = await db.connect_to_database()
     if not connected:
         logger.error("Failed to connect to MongoDB. Application might not work properly.")
-    
+
     yield  # <-- точка, где приложение «работает»
 
     # Это будет выполняться при остановке приложения:
@@ -40,11 +44,12 @@ class CustomJSONEncoder(JSONEncoder):
             return str(obj)
         return super().default(obj)
 
+
 # Инициализируем FastAPI, указывая lifespan:
 app = FastAPI(
     title="CarLogix Loading Optimizer",
     lifespan=lifespan,
-    default_response_class=HTMLResponse,
+    default_response_class=HTMLResponse,  # По умолчанию HTMLResponse
     json_encoder=CustomJSONEncoder
 )
 
@@ -82,12 +87,16 @@ async def root():
     return HTMLResponse(content=content)
 
 
-# Подключаем роутер /api/vehicles (или другие)
-app.include_router(vehicles_router, prefix="/api", tags=["Vehicles"])
+# Подключаем роутеры
+# Cars → /api/cars
+app.include_router(cars_router, prefix="/api", tags=["Cars"])
+# Trucks → /api/trucks
+app.include_router(trucks_router, prefix="/api", tags=["Trucks"])
+# Trailers → /api/trailers
+app.include_router(trailers_router, prefix="/api", tags=["Trailers"])
 
 
 if __name__ == "__main__":
     import uvicorn
-    # Важно: если хотите reload/workers, задайте строку "module:app"
-    # Здесь для простоты вызываем напрямую, предупреждение можно игнорировать
+    # Если нужен reload, можно указать uvicorn.run("main:app", reload=True)
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
