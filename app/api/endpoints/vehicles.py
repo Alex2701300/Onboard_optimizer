@@ -152,10 +152,13 @@ async def list_vehicles():
     docs = await db.list_vehicles()
     responses = []
     for d in docs:
+        # Convert ObjectId to string before encoding
+        doc_copy = dict(d)
+        doc_copy['_id'] = str(d['_id'])
         responses.append(VehicleResponse(
             id=str(d["_id"]),
             type=d.get("type", "unknown"),
-            data=jsonable_encoder(d),
+            data=doc_copy,
             created_at=d["created_at"],
             updated_at=d["updated_at"]
         ))
