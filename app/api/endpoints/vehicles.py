@@ -154,7 +154,7 @@ async def list_vehicles():
         VehicleResponse(
             id=str(doc["_id"]),
             type=doc.get("type", "unknown"),
-            data=jsonable_encoder(doc),
+            data={k: str(v) if isinstance(v, ObjectId) else v for k, v in doc.items()},
             created_at=doc["created_at"],
             updated_at=doc["updated_at"]
         )
