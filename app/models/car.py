@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Optional, List, Dict
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, validator
 from decimal import Decimal
+from dataclasses import dataclass
 
 class BodyType(str, Enum):
     SEDAN = "sedan"
@@ -33,77 +33,67 @@ class DataSource(str, Enum):
     API = "api"
     IMPORT = "import"
 
-class Dimensions(BaseModel):
-    """Размеры автомобиля"""
-    length: Decimal = Field(..., description="Length in inches", gt=0)
-    width: Decimal = Field(..., description="Width in inches", gt=0)
-    height: Decimal = Field(..., description="Height in inches", gt=0)
-    wheelbase: Optional[Decimal] = Field(None, description="Wheelbase in inches")
-    hood_height: Optional[Decimal] = Field(None, description="Hood height in inches")
-    curb_weight: Decimal = Field(..., description="Weight in pounds", gt=0)
+@dataclass
+class Dimensions:
+    length: Decimal
+    width: Decimal
+    height: Decimal
+    wheelbase: Optional[Decimal] = None
+    hood_height: Optional[Decimal] = None
+    curb_weight: Decimal
 
-    @validator('length')
-    def length_must_be_greater_than_width(cls, v, values):
-        if 'width' in values and v <= values['width']:
+    def __post_init__(self):
+        if self.length <= self.width:
             raise ValueError('Length must be greater than width')
-        return v
 
-class Modification(BaseModel):
-    """Модификации автомобиля"""
-    type: str = Field(..., description="Type of modification")
-    description: str = Field(..., min_length=50, description="Detailed description")
-    height_change: Optional[Decimal] = Field(None, description="Change in height (inches)")
-    weight_change: Optional[Decimal] = Field(None, description="Change in weight (pounds)")
+@dataclass
+class Modification:
+    type: str
+    description: str
+    height_change: Optional[Decimal] = None
+    weight_change: Optional[Decimal] = None
 
-class LotData(BaseModel):
-    """Данные лота"""
+@dataclass
+class LotData:
     lot_number: str
     buyer_number: Optional[str] = None
     gate_number: Optional[str] = None
     lot_location: Optional[str] = None
     order_number: Optional[str] = None
 
-class VanSpecification(BaseModel):
-    """Спецификация для типа van"""
+@dataclass
+class VanSpecification:
     roof_type: RoofType
     van_type: VanType
 
-class Car(BaseModel):
-    """Модель автомобиля для перевозки"""
-    model_config = ConfigDict(populate_by_name=True)
-
-    # Системные поля
-    id: Optional[str] = Field(None, alias="_id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    source: DataSource = Field(default=DataSource.MANUAL)
-    last_modified_by: Optional[str] = None
-
-    # Обязательные базовые поля
-    year: int = Field(..., ge=1900, le=datetime.now().year + 1)
-    make: str = Field(..., min_length=1)
-    model: str = Field(..., min_length=1)
+@dataclass
+class Car:
+    year: int
+    make: str
+    model: str
     body_type: BodyType
-    status: CarStatus = Field(default=CarStatus.RUN_AND_DRIVE)
     dimensions: Dimensions
-
-    # Опциональные поля
-    vin: Optional[str] = None
-    lot_data: Optional[LotData] = None
     van_specification: Optional[VanSpecification] = None
-    original_api_data: Optional[Dict] = None
+    status: CarStatus = CarStatus.RUN_AND_DRIVE
+    is_modified: bool = False
+    source: DataSource = DataSource.MANUAL
+    lot_data: Optional[LotData] = None
+    modifications: Optional[List[Modification]] = None #Added modifications field
+    id: Optional[str] = None #Added id field
+    created_at: datetime = None #Added created_at field
+    updated_at: datetime = None #Added updated_at field
+    last_modified_by: Optional[str] = None #Added last_modified_by field
+    original_api_data: Optional[Dict] = None #Added original_api_data
 
-    # Модификации
-    is_modified: bool = Field(default=False)
-    modifications: Optional[List[Modification]] = None
 
-    @validator('van_specification')
-    def validate_van_spec(cls, v, values):
-        if 'body_type' in values and values['body_type'] == BodyType.VAN and v is None:
-            raise ValueError('Van specification is required for van body type')
-        if 'body_type' in values and values['body_type'] != BodyType.VAN and v is not None:
-            raise ValueError('Van specification is only allowed for van body type')
-        return v
+    def __post_init__(self):
+        if self.body_type == BodyType.VAN and not self.van_specification:
+            raise ValueError("Van specification is required for van body type")
+        if self.created_at is None:
+            self.created_at = datetime.utcnow()
+        if self.updated_at is None:
+            self.updated_at = datetime.utcnow()
+
 
     def get_total_dimensions(self) -> Dimensions:
         """Получить итоговые размеры с учетом модификаций"""
@@ -126,7 +116,7 @@ class Car(BaseModel):
             length=self.dimensions.length,
             width=self.dimensions.width,
             height=self.dimensions.height + height_change,
-            weight=self.dimensions.curb_weight + weight_change,
+            curb_weight=self.dimensions.curb_weight + weight_change, #Corrected field name
             wheelbase=self.dimensions.wheelbase,
             hood_height=self.dimensions.hood_height
         )
