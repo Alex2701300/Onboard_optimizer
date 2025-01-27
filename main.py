@@ -2,6 +2,9 @@
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.encoders import jsonable_encoder
+from bson import ObjectId
+from json import JSONEncoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -27,10 +30,19 @@ async def lifespan(app: FastAPI):
     await db.close_database_connection()
 
 
+# Custom JSON encoder for ObjectId
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
 # Инициализируем FastAPI, указывая lifespan:
 app = FastAPI(
     title="CarLogix Loading Optimizer",
-    lifespan=lifespan
+    lifespan=lifespan,
+    default_response_class=HTMLResponse,
+    json_encoder=CustomJSONEncoder
 )
 
 # Разрешаем CORS:
