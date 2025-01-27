@@ -1,49 +1,53 @@
-# app/models/car/schemas.py
 
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, Field
+from decimal import Decimal
+from pydantic import BaseModel
+from app.models.enums import CarBodyType, CarStatus, DataSource
 
-#
-# Схема для создания автомобиля (POST /api/cars).
-#
-class CarCreateSchema(BaseModel):
-    vin: str
-    make: str
-    model: str
-    year: int
-    length_in: Optional[float] = None
-    width_in: Optional[float] = None
-    height_ft: Optional[float] = None
-    wheelbase_in: Optional[float] = None
+class CarDimensions(BaseModel):
+    length: Decimal
+    width: Decimal
+    height: Decimal
+    curb_weight: Decimal
+    wheelbase: Optional[Decimal] = None
+    hood_height: Optional[Decimal] = None
 
+class CarModification(BaseModel):
+    type: str
+    description: str
+    height_change: Optional[Decimal] = None
+    weight_change: Optional[Decimal] = None
 
-#
-# Схема для ответа (GET /api/cars, GET /api/cars/{car_id} и т.д.)
-# Поля, которые могут отсутствовать в базе, объявлены Optional.
-# Если _id — ObjectId, Pydantic сконвертирует в str благодаря alias="_id".
-#
+class CarLotData(BaseModel):
+    lot_number: str
+    buyer_number: Optional[str] = None
+    gate_number: Optional[str] = None
+    lot_location: Optional[str] = None
+    order_number: Optional[str] = None
+
 class CarResponseSchema(BaseModel):
-    # MongoDB _id => id:str
-    id: str = Field(..., alias="_id")
-
-    vin: str
+    id: str
+    year: int
     make: str
     model: str
+    body_type: CarBodyType
+    dimensions: CarDimensions
+    status: CarStatus = CarStatus.RUN_AND_DRIVE
+    is_modified: bool = False
+    source: DataSource = DataSource.MANUAL
+    lot_data: Optional[CarLotData] = None
+    modifications: Optional[List[CarModification]] = None
+    created_at: datetime
+    updated_at: datetime
+    last_modified_by: Optional[str] = None
+
+class CarCreateSchema(BaseModel):
     year: int
-
-    length_in: Optional[float] = None
-    width_in: Optional[float] = None
-    height_ft: Optional[float] = None
-    wheelbase_in: Optional[float] = None
-
-    # Если в документе может не быть 'type' — делаем Optional
-    type: Optional[str] = None
-
-    # Если в документе могут отсутствовать created_at/updated_at
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        # Разрешаем Pydantic брать поля по alias, чтобы _id -> id
-        allow_population_by_field_name = True
+    make: str
+    model: str
+    body_type: CarBodyType
+    dimensions: CarDimensions
+    status: Optional[CarStatus] = CarStatus.RUN_AND_DRIVE
+    lot_data: Optional[CarLotData] = None
+    modifications: Optional[List[CarModification]] = None
