@@ -988,15 +988,36 @@
       setMsg("Loading trucks...");
       try {
         const all = await listTrucks();
-        setTruckList(all);
-        setMsg("");
+        if (Array.isArray(all)) {
+          setTruckList(all);
+          setMsg("");
+        } else {
+          throw new Error("Invalid response format");
+        }
       } catch(err) {
-        setMsg("Error: "+err.message);
+        console.error("Load trucks error:", err);
+        setMsg("Error loading trucks: " + (err.message || "Unknown error"));
       }
-    }, []);
+    }, [setMsg]);
 
     React.useEffect(() => {
-      loadTrucksLocal();
+      let mounted = true;
+      
+      const load = async () => {
+        try {
+          await loadTrucksLocal();
+        } catch (err) {
+          if (mounted) {
+            console.error("Effect error:", err);
+          }
+        }
+      };
+      
+      load();
+      
+      return () => {
+        mounted = false;
+      };
     }, [loadTrucksLocal]);
 
     // Создание палуб (deck_count)
