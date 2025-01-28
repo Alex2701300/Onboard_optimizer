@@ -5,35 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CarLogix Full Debug Interface</title>
 
-  <!-- React with crossorigin -->
-  <!-- React -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <!-- React Development -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Error handling -->
-  <script type="text/javascript">
-    const originalError = console.error;
-    console.error = function() {
-      originalError.apply(console, arguments);
-      const errorDiv = document.createElement('div');
-      errorDiv.style.color = 'red';
-      errorDiv.style.padding = '10px';
-      errorDiv.style.margin = '10px';
-      errorDiv.style.border = '1px solid red';
-      errorDiv.textContent = Array.from(arguments).join(' ');
-      document.body.prepend(errorDiv);
+  <!-- Error Boundary Setup -->
+  <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.log('Error: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo + '\nColumn: ' + columnNo + '\nError: ' + error);
+      return false;
     };
-
-    window.addEventListener('error', function(event) {
-      console.error('Runtime error:', event.error);
-      event.preventDefault();
-    });
-
-    window.addEventListener('unhandledrejection', function(event) {
-      console.error('Promise rejection:', event.reason);
-      event.preventDefault();
-    });
   </script>
 
   <style>
@@ -1032,7 +1014,7 @@ window.onerror = function(msg, url, line, col, error) {
 
     React.useEffect(() => {
       let mounted = true;
-      
+
       const load = async () => {
         try {
           await loadTrucksLocal();
@@ -1042,9 +1024,9 @@ window.onerror = function(msg, url, line, col, error) {
           }
         }
       };
-      
+
       load();
-      
+
       return () => {
         mounted = false;
       };
@@ -1542,7 +1524,7 @@ window.onerror = function(msg, url, line, col, error) {
       if (!domNode) {
         throw new Error('Root element not found');
       }
-      
+
       const root = ReactDOM.createRoot(domNode);
       root.render(
         React.createElement(React.StrictMode, null,
