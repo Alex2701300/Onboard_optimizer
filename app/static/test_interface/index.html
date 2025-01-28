@@ -490,6 +490,49 @@
       );
     }
 
+    // ------------------------------ EDGE EDITOR ------------------------------
+    function EdgeEditor({ edge, onChangeEdge }) {
+      const handle = (field, val) => {
+        onChangeEdge({ ...edge, [field]: val });
+      };
+
+      return (
+        <div className="sub-block" style={{ background: "#f5f5f5" }}>
+          <label>Edge Type</label>
+          <select
+            value={edge.type || "static"}
+            onChange={(e) => handle("type", e.target.value)}
+          >
+            <option value="static">static</option>
+            <option value="mobile">mobile</option>
+          </select>
+
+          <label>Edge Position</label>
+          <select
+            value={edge.position || "A"}
+            onChange={(e) => handle("position", e.target.value)}
+          >
+            <option value="A">A</option>
+            <option value="B">B</option>
+          </select>
+
+          <label>Height (inches)</label>
+          <input
+            type="number"
+            value={edge.height || ""}
+            onChange={(e) => handle("height", parseFloat(e.target.value) || 0)}
+          />
+
+          <label>Has Chains?</label>
+          <input
+            type="checkbox"
+            checked={edge.chains || false}
+            onChange={(e) => handle("chains", e.target.checked)}
+          />
+        </div>
+      );
+    }
+
     // ------------------------------ SLIDE EDITOR ------------------------------
     function SlideEditor({ slide, onChangeSlide }) {
       const handle = (field, value) => {
