@@ -55,8 +55,11 @@ async def lifespan(app: FastAPI):
         logger.error(f"Critical error: {str(e)}")
         raise
     finally:
-        await db.close_database_connection()
-        logger.info("MongoDB disconnected.")
+        try:
+            await db.close_database_connection()
+            logger.info("MongoDB disconnected.")
+        except Exception as e:
+            logger.error(f"Error during disconnect: {str(e)}")
 
 
 app = FastAPI(
