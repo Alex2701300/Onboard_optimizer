@@ -782,7 +782,7 @@
       if (sum!==deck.total_length) {
         onChangeDeck({ ...deck, total_length: sum });
       }
-    }, [deck.platforms]);
+    }, [deck.platforms, onChangeDeck]);
 
     const addPlatform = () => {
       const newNum = globalPlatformCount+1;
@@ -984,9 +984,20 @@
     const [truckList, setTruckList] = React.useState([]);
     const [showFinalConfirm, setShowFinalConfirm] = React.useState(false);
 
+    const loadTrucksLocal = React.useCallback(async () => {
+      setMsg("Loading trucks...");
+      try {
+        const all = await listTrucks();
+        setTruckList(all);
+        setMsg("");
+      } catch(err) {
+        setMsg("Error: "+err.message);
+      }
+    }, []);
+
     React.useEffect(() => {
       loadTrucksLocal();
-    }, []);
+    }, [loadTrucksLocal]);
 
     // Создание палуб (deck_count)
     React.useEffect(() => {
@@ -1014,21 +1025,10 @@
       } else if(decks.length>dCount) {
         setDecks(decks.slice(0,dCount));
       }
-    }, [form.deck_count]);
+    }, [form.deck_count, setForm, decks]);
 
     const handleForm = (field, val) => {
       setForm({...form, [field]: val});
-    };
-
-    const loadTrucksLocal = async() => {
-      setMsg("Loading trucks...");
-      try {
-        const all = await listTrucks();
-        setTruckList(all);
-        setMsg("");
-      } catch(err) {
-        setMsg("Error: "+err.message);
-      }
     };
 
     const removeTruck = async(id) => {
