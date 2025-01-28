@@ -6,28 +6,33 @@
   <title>CarLogix Full Debug Interface</title>
 
   <!-- React with crossorigin -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js" crossorigin></script>
+  <!-- React -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
 
   <!-- Error handling -->
-  <script>
-    window.onerror = function(msg, url, line, col, error) {
-      console.error('Global error:', {msg, url, line, col, error});
-      return false;
+  <script type="text/javascript">
+    const originalError = console.error;
+    console.error = function() {
+      originalError.apply(console, arguments);
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'red';
+      errorDiv.style.padding = '10px';
+      errorDiv.style.margin = '10px';
+      errorDiv.style.border = '1px solid red';
+      errorDiv.textContent = Array.from(arguments).join(' ');
+      document.body.prepend(errorDiv);
     };
 
-    window.addEventListener('unhandledrejection', function(event) {
-      console.error('Promise error:', event.reason);
-    });
-  </script>
-  <script type="text/javascript">
     window.addEventListener('error', function(event) {
-      console.error('Global error:', event.error);
+      console.error('Runtime error:', event.error);
+      event.preventDefault();
     });
-    
+
     window.addEventListener('unhandledrejection', function(event) {
-      console.error('Unhandled promise rejection:', event.reason);
+      console.error('Promise rejection:', event.reason);
+      event.preventDefault();
     });
   </script>
 
@@ -1531,14 +1536,25 @@ window.onerror = function(msg, url, line, col, error) {
     );
   }
 
-  const domNode = document.getElementById('root');
-  const root = ReactDOM.createRoot(domNode);
-  
-  root.render(
-    React.createElement(ErrorBoundary, null,
-      React.createElement(App, null)
-    )
-  );
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      const domNode = document.getElementById('root');
+      if (!domNode) {
+        throw new Error('Root element not found');
+      }
+      
+      const root = ReactDOM.createRoot(domNode);
+      root.render(
+        React.createElement(React.StrictMode, null,
+          React.createElement(ErrorBoundary, null,
+            React.createElement(App, null)
+          )
+        )
+      );
+    } catch (error) {
+      console.error('React initialization error:', error);
+    }
+  });
 </script>
 </body>
 </html>
