@@ -5,12 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CarLogix Full Debug Interface</title>
 
-  <!-- Load React -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <!-- Development versions of React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Error Boundary and logging -->
+  <script type="text/javascript">
+    window.addEventListener('error', function(event) {
+      console.error('Global error caught:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error
+      });
+    });
+  </script>
 
-  <!-- Error handling -->
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
   <script type="text/javascript">
     window.addEventListener('error', function(event) {
       console.error('Global error:', event.error);
@@ -1521,19 +1534,27 @@ window.onerror = function(msg, url, line, col, error) {
     );
   }
 
-  const rootElement = document.getElementById("root");
-  const root = ReactDOM.createRoot(rootElement);
-  
-  try {
-    root.render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
-  } catch (error) {
-    console.error('Render error:', error);
-    rootElement.innerHTML = 'Error loading application: ' + error.message;
-  }
+  document.addEventListener('DOMContentLoaded', function() {
+    const rootElement = document.getElementById("root");
+    if (!rootElement) {
+      console.error('Root element not found!');
+      return;
+    }
+
+    try {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </React.StrictMode>
+      );
+    } catch (error) {
+      console.error('React render error:', error);
+      rootElement.innerHTML = '<div style="color: red; padding: 20px;">Error loading application: ' + error.message + '</div>';
+    }
+  });
 </script>
 </body>
 </html>
