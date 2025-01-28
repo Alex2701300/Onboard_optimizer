@@ -1,5 +1,3 @@
-# app/models/truck/crud.py
-
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -9,7 +7,7 @@ from app.models.truck.schemas import TruckCreateSchema, TruckResponseSchema
 
 class TruckCRUD:
     """
-    Ленивая логика для trucks. 
+    Логика для trucks, аналогичная cars (через uuid4, без счётчиков).
     """
 
     async def create_truck(self, data: TruckCreateSchema) -> Optional[TruckResponseSchema]:
@@ -18,7 +16,9 @@ class TruckCRUD:
             raise RuntimeError("MongoDB 'vehicles' is not init.")
 
         doc = data.dict()
+        # Вместо счётчика — uuid4 (как в cars)
         doc["_id"] = str(uuid.uuid4())
+
         doc["type"] = "truck"
         doc["created_at"] = datetime.utcnow()
         doc["updated_at"] = datetime.utcnow()
@@ -36,9 +36,16 @@ class TruckCRUD:
         if coll is None:
             raise RuntimeError("MongoDB 'vehicles' is not init.")
 
-        cursor = coll.find({"type": "truck"})
-        docs = await cursor.to_list(None)
-        return [TruckResponseSchema(**d) for d in docs]
+        docs = await coll.find({"type": "truck"}).to_list(None)
+        if not docs:
+            return []
+
+        results = []
+        for d in docs:
+            # Переносим _id -> id, как в cars
+            d["id"] = str(d["_id"])
+            results.append(TruckResponseSchema(**d))
+        return results
 
     async def get_truck(self, truck_id: str) -> Optional[TruckResponseSchema]:
         coll = db.vehicles
@@ -75,6 +82,5 @@ class TruckCRUD:
 
         result = await coll.delete_one({"_id": truck_id, "type": "truck"})
         return (result.deleted_count > 0)
-
 
 truck_crud = TruckCRUD()

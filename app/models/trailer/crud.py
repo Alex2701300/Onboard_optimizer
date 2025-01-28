@@ -1,5 +1,3 @@
-# app/models/trailer/crud.py
-
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -9,7 +7,7 @@ from app.models.trailer.schemas import TrailerCreateSchema, TrailerResponseSchem
 
 class TrailerCRUD:
     """
-    Ленивая логика для trailers.
+    Логика для trailers, аналогичная cars (через uuid4).
     """
 
     async def create_trailer(self, data: TrailerCreateSchema) -> Optional[TrailerResponseSchema]:
@@ -34,13 +32,16 @@ class TrailerCRUD:
         if coll is None:
             raise RuntimeError("MongoDB 'vehicles' is None.")
 
-        cursor = coll.find({"type": "trailer"})
-        docs = await cursor.to_list(None)
-        return [TrailerResponseSchema(**d) for d in docs]
+        docs = await coll.find({"type": "trailer"}).to_list(None)
+        if not docs:
+            return []
 
-    # Если нужны get/update/delete — аналогично
-    # async def get_trailer(...)
-    # async def update_trailer(...)
-    # async def delete_trailer(...)
+        results = []
+        for d in docs:
+            d["id"] = str(d["_id"])
+            results.append(TrailerResponseSchema(**d))
+        return results
+
+    # При желании, get_trailer, update_trailer, delete_trailer — делайте аналогично
 
 trailer_crud = TrailerCRUD()

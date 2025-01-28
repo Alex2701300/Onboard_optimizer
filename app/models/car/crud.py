@@ -1,16 +1,35 @@
-# app/models/car/crud.py
-
 from typing import List, Optional
 from datetime import datetime
-import uuid
 
-from app.db.mongodb import db  # "ленивый" доступ
+# Нужно импортировать ReturnDocument из pymongo
+from pymongo import ReturnDocument
+
+from app.db.mongodb import db  # Ленивое подключение к Mongo
 from app.models.car.schemas import CarCreateSchema, CarResponseSchema
+
+async def get_next_car_id() -> str:
+    """
+    Увеличивает счётчик для 'car_counter' и формирует ID вида: car0000001, car0000002, ...
+    Хранит счётчик в коллекции db.counters, документ {'_id': 'car_counter'}.
+    """
+    counters_coll = db.counters
+    if counters_coll is None:
+        raise RuntimeError("MongoDB collection 'counters' is not initialized.")
+
+    result = await counters_coll.find_one_and_update(
+        {"_id": "car_counter"},
+        {"$inc": {"seq": 1}},           # Увеличиваем счётчик на 1
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    seq_value = result["seq"]  # текущее значение счётчика
+    # Формируем строку вида 'car0000001' (7 цифр с ведущими нулями)
+    return f"car{seq_value:07d}"
 
 
 class CarCRUD:
     """
-    CRUD для Cars. 
+    CRUD для Cars.
     При каждом вызове мы берём db.vehicles и проверяем, что не None.
     """
 
@@ -19,24 +38,25 @@ class CarCRUD:
         if coll is None:
             raise RuntimeError("MongoDB collection 'vehicles' is not initialized.")
 
+        # Преобразуем входные данные в словарь
         doc = data.dict()
-        # Генерируем _id:
-        doc["_id"] = str(uuid.uuid4())
+        # Генерируем _id на основе счётчика
+        doc["_id"] = await get_next_car_id()
+
         doc["type"] = "car"
         doc["created_at"] = datetime.utcnow()
         doc["updated_at"] = datetime.utcnow()
 
+        # Добавляем документ в коллекцию
         await coll.insert_one(doc)
+
+        # Считываем обратно из базы, чтобы вернуть полные данные
         new_doc = await coll.find_one({"_id": doc["_id"]})
         if new_doc:
-            # Убедимся что _id это строка и добавим model если отсутствует
-            new_doc["_id"] = str(new_doc["_id"])
+            # При необходимости можно дополнить недостающие поля:
             if "model" not in new_doc:
-                new_doc["model"] = ""  # или другое значение по умолчанию
-            # Convert _id to string before passing to schema
-            if "_id" in new_doc:
-                new_doc["_id"] = str(new_doc["_id"])
-            return CarResponseSchema.from_mongo(new_doc)
+                new_doc["model"] = ""
+            return CarResponseSchema(**new_doc)
         return None
 
     async def list_cars(self) -> List[CarResponseSchema]:
@@ -46,8 +66,19 @@ class CarCRUD:
 
         cursor = coll.find({"type": "car"})
         docs = await cursor.to_list(length=None)
+
+        # Если в БД нет ни одной машины, вернём пустой список
+        if not docs:
+            return []
+
         # Преобразуем каждый doc -> CarResponseSchema
-        return [CarResponseSchema(**d) for d in docs]
+        results = []
+        for d in docs:
+            # Переносим Mongo _id -> поле "id" (для фронтенда, React/Vue и т.п.)
+            d["id"] = str(d["_id"])
+            results.append(CarResponseSchema(**d))
+
+        return results
 
     async def get_car(self, car_id: str) -> Optional[CarResponseSchema]:
         coll = db.vehicles
@@ -64,7 +95,9 @@ class CarCRUD:
         if coll is None:
             raise RuntimeError("MongoDB collection 'vehicles' is not initialized.")
 
+        # Обновляем поле updated_at при каждом изменении
         updates["updated_at"] = datetime.utcnow()
+
         result = await coll.update_one(
             {"_id": car_id, "type": "car"},
             {"$set": updates}
@@ -86,4 +119,5 @@ class CarCRUD:
         return (result.deleted_count > 0)
 
 
+# Экземпляр CRUD для использования в коде
 car_crud = CarCRUD()

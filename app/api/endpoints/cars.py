@@ -1,5 +1,3 @@
-# app/api/endpoints/cars.py
-
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any
 

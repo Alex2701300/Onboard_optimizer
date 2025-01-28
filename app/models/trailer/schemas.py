@@ -1,5 +1,3 @@
-# app/models/trailer/schemas.py
-
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -9,8 +7,9 @@ class TrailerCreateSchema(BaseModel):
     year: int
     capacity_in: float
 
+
 class TrailerResponseSchema(BaseModel):
-    id: str = Field(..., alias="_id")
+    id: str = Field(..., alias="_id")  # "_id" -> "id"
     nickname: str
     year: int
     capacity_in: float

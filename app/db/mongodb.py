@@ -1,5 +1,3 @@
-# app/db/mongodb.py
-
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from ..core.config import get_settings
 from typing import Optional, List, Dict, Any
@@ -15,6 +13,7 @@ class MongoDB:
     vehicles: AsyncIOMotorCollection = None
     setups: AsyncIOMotorCollection = None
     loading_experience: AsyncIOMotorCollection = None
+    counters: AsyncIOMotorCollection = None  # <-- добавили свойство counters
 
     async def connect_to_database(self):
         """Инициализирует подключение к MongoDB и настраивает коллекции"""
@@ -29,13 +28,16 @@ class MongoDB:
             )
             # Проверка соединения
             await self.client.admin.command('ping')
-            
+
             self.db = self.client[settings.MONGODB_DB_NAME]
-            
+
             # Инициализация коллекций
             self.vehicles = self.db.vehicles
             self.setups = self.db.setups
             self.loading_experience = self.db.loading_experience
+
+            # Новая строка, чтобы не было ошибки "no attribute 'counters'"
+            self.counters = self.db.counters  
 
             # Создание индексов
             await self._create_indexes()
@@ -195,7 +197,7 @@ class MongoDB:
         chain_config: Dict[str, List[str]]
     ) -> bool:
         """
-        Обновляет словарь {platform_id: [edge_positions]} — 
+        Обновляет словарь {platform_id: [edge_positions]} —
         какие платформы/края используют цепи.
         """
         try:
