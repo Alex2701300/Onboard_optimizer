@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CarLogix Full Debug Interface</title>
 
-  <!-- Подключаем React, ReactDOM, Babel -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Load React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
 
+  <!-- Error handling -->
   <script type="text/javascript">
     window.addEventListener('error', function(event) {
       console.error('Global error:', event.error);
@@ -198,7 +199,11 @@
 
 <div id="root"></div>
 
-<script type="text/babel">
+<script type="text/babel" defer>
+window.onerror = function(msg, url, line, col, error) {
+    console.error("Error: ", {msg, url, line, col, error});
+    return false;
+};
 
   // ------------------------------ UTILS ------------------------------
   async function checkDB() {
