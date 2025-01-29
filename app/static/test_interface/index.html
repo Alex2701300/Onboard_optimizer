@@ -6,9 +6,20 @@
   <title>CarLogix Full Debug Interface</title>
 
   <!-- React Development -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Error:', msg, 'at', line, ':', col);
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'red';
+      errorDiv.textContent = `Error: ${msg} at ${line}:${col}`;
+      document.body.prepend(errorDiv);
+      return false;
+    };
+  </script>
 
   <!-- Error Boundary -->
   <script>
@@ -931,7 +942,17 @@
     );
   }
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+  } else {
+    console.error('Root element not found');
+  }
 </script>
 </body>
 </html>
