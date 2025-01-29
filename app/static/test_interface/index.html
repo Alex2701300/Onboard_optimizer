@@ -5,10 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
 
-  <!-- React + Babel CDN -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+  <script type="text/javascript">
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error('Ошибка:', message);
+      console.error('Источник:', source);
+      console.error('Строка:', lineno);
+      console.error('Колонка:', colno);
+      console.error('Стек ошибки:', error && error.stack);
+      return false;
+    };
+  </script>
 
   <style>
     :root {
@@ -850,7 +860,7 @@
         return;
       }
       if(dCount>2) {
-        setForm({...form, deck_count:"2"});
+        setForm({...form, deckcount:"2"});
         return;
       }
       if(decks.length<dCount) {
