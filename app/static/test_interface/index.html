@@ -5,9 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CarLogix Full Debug Interface</title>
 
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <!-- React Development -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Error Boundary -->
+  <script>
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+
+      render() {
+        if (this.state.hasError) {
+          return <div style={{color: 'red', padding: '20px'}}>
+            <h2>Something went wrong</h2>
+            <pre>{this.state.error?.toString()}</pre>
+          </div>;
+        }
+        return this.props.children;
+      }
+    }
+  </script>
 
   <style>
     :root {
@@ -897,9 +922,11 @@
           <button onClick={() => setActiveTab("trailer")}>Trailers</button>
         </div>
 
-        {activeTab === "car" && <CarTab />}
-        {activeTab === "truck" && <TruckFullEditor />}
-        {activeTab === "trailer" && <TrailerTab />}
+        <ErrorBoundary>
+          {activeTab === "car" && <CarTab />}
+          {activeTab === "truck" && <TruckFullEditor />}
+          {activeTab === "trailer" && <TrailerTab />}
+        </ErrorBoundary>
       </div>
     );
   }
