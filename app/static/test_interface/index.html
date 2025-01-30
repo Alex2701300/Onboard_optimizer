@@ -5,10 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
 
+  <!-- Отладка -->
+  <script type="text/javascript">
+    console.log('Начало загрузки страницы');
+    
+    window.addEventListener('error', function(e) {
+      console.error('Глобальная ошибка:', e.error);
+      document.body.innerHTML += `<div style="color:red;padding:20px">
+        Ошибка: ${e.error?.message}<br>
+        Стек: ${e.error?.stack}
+      </div>`;
+    });
+
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Необработанный промис:', e.reason);
+    });
+  </script>
+
   <!-- React и Babel -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+  
+  <script type="text/javascript">
+    // Проверка загрузки React
+    setTimeout(() => {
+      if (!window.React) {
+        console.error('React не загружен!');
+      }
+      if (!window.ReactDOM) {
+        console.error('ReactDOM не загружен!');
+      }
+      if (!window.Babel) {
+        console.error('Babel не загружен!');
+      }
+    }, 1000);
+  </script>
 
   <!-- Настройка Babel -->
   <script>
@@ -1256,18 +1288,37 @@
     );
   }
 
-  const rootElement = document.getElementById('root');
-  if (rootElement) {
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
-      <React.StrictMode>
-        <ErrorBoundary>
-          <App/>
-        </ErrorBoundary>
-      </React.StrictMode>
-    );
-  } else {
-    console.error('Root element не найден');
+  console.log('Начало инициализации React');
+  
+  try {
+    const rootElement = document.getElementById('root');
+    if (!rootElement) {
+      throw new Error('Root element не найден');
+    }
+    
+    console.log('Root element найден, создаём приложение');
+    
+    const renderApp = () => {
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(
+        <React.StrictMode>
+          <ErrorBoundary>
+            <App/>
+          </ErrorBoundary>
+        </React.StrictMode>
+      );
+    };
+
+    // Даём время на полную загрузку React
+    setTimeout(renderApp, 100);
+    
+  } catch (error) {
+    console.error('Ошибка при инициализации:', error);
+    document.body.innerHTML += `
+      <div style="color:red;padding:20px">
+        Ошибка инициализации: ${error.message}
+      </div>
+    `;
   }
 
 </script>
