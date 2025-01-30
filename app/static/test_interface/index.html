@@ -5,9 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <!-- React и Babel -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.js"></script>
+
+  <!-- Настройка Babel -->
+  <script>
+    window.Babel = window.babel;
+  </script>
 
   <script type="text/javascript">
     window.onerror = function(message, source, lineno, colno, error) {
@@ -1250,7 +1256,19 @@
     );
   }
 
-  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <App/>
+        </ErrorBoundary>
+      </React.StrictMode>
+    );
+  } else {
+    console.error('Root element не найден');
+  }
 
 </script>
 </body>
