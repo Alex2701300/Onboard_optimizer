@@ -13,6 +13,7 @@
   </script>
 
   <script>
+    // Единый обработчик ошибок
     window.onerror = function(msg, url, line, col, error) {
       console.error('Error:', msg, 'at', line, ':', col);
       const errorDiv = document.createElement('div');
@@ -21,28 +22,21 @@
       document.body.prepend(errorDiv);
       return false;
     };
-  </script>
-    // Обработчик общих ошибок
-    window.onerror = function(msg, url, line, col, error) {
-      console.error('Global error:', {msg, url, line, col, error});
-      document.body.innerHTML += `<div style="color:red;padding:20px">Error: ${msg} at ${line}:${col}</div>`;
-      return true;
-    };
     
     // Обработчик ошибок промисов
     window.addEventListener('unhandledrejection', function(event) {
       console.error('Unhandled promise rejection:', event.reason);
-      document.body.innerHTML += `<div style="color:red;padding:20px">Promise Error: ${event.reason}</div>`;
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'red';
+      errorDiv.textContent = `Promise Error: ${event.reason}`;
+      document.body.prepend(errorDiv);
     });
     
-    // Дополнительный обработчик
+    // Дополнительный обработчик событий ошибок
     window.addEventListener('error', function(event) {
       console.error('Error event:', event.error);
       return false;
     });
-      document.body.innerHTML += `<div style="color:red;padding:20px">Error: ${msg} at ${line}:${col}</div>`;
-      return false;
-    };
   </script>
   
   <style>
