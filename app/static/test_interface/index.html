@@ -5,21 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
   
-  <!-- React и ReactDOM с явным указанием версий -->
-  <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+  <!-- React и ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-  <!-- Глобальный обработчик ошибок -->
-  <script type="text/javascript">
-    window.addEventListener('error', function(event) {
-      console.error('Global error handler:', event.error);
-    });
-  </script>
-  
+  <!-- Глобальные обработчики ошибок -->
   <script>
+    // Обработчик общих ошибок
     window.onerror = function(msg, url, line, col, error) {
-      console.error('Global error:', msg, 'at', line + ':' + col);
+      console.error('Global error:', {msg, url, line, col, error});
+      document.body.innerHTML += `<div style="color:red;padding:20px">Error: ${msg} at ${line}:${col}</div>`;
+      return true;
+    };
+    
+    // Обработчик ошибок промисов
+    window.addEventListener('unhandledrejection', function(event) {
+      console.error('Unhandled promise rejection:', event.reason);
+      document.body.innerHTML += `<div style="color:red;padding:20px">Promise Error: ${event.reason}</div>`;
+    });
+    
+    // Дополнительный обработчик
+    window.addEventListener('error', function(event) {
+      console.error('Error event:', event.error);
+      return false;
+    });
       document.body.innerHTML += `<div style="color:red;padding:20px">Error: ${msg} at ${line}:${col}</div>`;
       return false;
     };
@@ -1167,8 +1177,9 @@
       );
     }
     
-    console.log('Initializing React');
-    document.addEventListener('DOMContentLoaded', () => {
+    // Инициализация React после полной загрузки всех скриптов
+    window.addEventListener('load', () => {
+      console.log('Window loaded, initializing React');
       try {
         const rootElement = document.getElementById('root');
         if (!rootElement) { throw new Error('Root element not found'); }
