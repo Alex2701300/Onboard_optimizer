@@ -5,13 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
   
-  <!-- React и ReactDOM -->
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Глобальные обработчики ошибок -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script>
+    window.Babel = window.babel;
+  </script>
+
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Error:', msg, 'at', line, ':', col);
+      const errorDiv = document.createElement('div');
+      errorDiv.style.color = 'red';
+      errorDiv.textContent = `Error: ${msg} at ${line}:${col}`;
+      document.body.prepend(errorDiv);
+      return false;
+    };
+  </script>
     // Обработчик общих ошибок
     window.onerror = function(msg, url, line, col, error) {
       console.error('Global error:', {msg, url, line, col, error});
