@@ -4,60 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
-
-  <!-- Отладка -->
-  <script type="text/javascript">
-    console.log('Начало загрузки страницы');
-    
-    window.addEventListener('error', function(e) {
-      console.error('Глобальная ошибка:', e.error);
-      document.body.innerHTML += `<div style="color:red;padding:20px">
-        Ошибка: ${e.error?.message}<br>
-        Стек: ${e.error?.stack}
-      </div>`;
-    });
-
-    window.addEventListener('unhandledrejection', function(e) {
-      console.error('Необработанный промис:', e.reason);
-    });
-  </script>
-
-  <!-- React и Babel -->
+  
+  <!-- Подключаем Babel через cdnjs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js" crossorigin></script>
+  <!-- Подключаем React и ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
   
-  <script type="text/javascript">
-    // Проверка загрузки React
-    setTimeout(() => {
-      if (!window.React) {
-        console.error('React не загружен!');
-      }
-      if (!window.ReactDOM) {
-        console.error('ReactDOM не загружен!');
-      }
-      if (!window.Babel) {
-        console.error('Babel не загружен!');
-      }
-    }, 1000);
-  </script>
-
-  <!-- Настройка Babel -->
-  <script>
-    window.Babel = window.babel;
-  </script>
-
-  <script type="text/javascript">
-    window.onerror = function(message, source, lineno, colno, error) {
-      console.error('Ошибка:', message);
-      console.error('Источник:', source);
-      console.error('Строка:', lineno);
-      console.error('Колонка:', colno);
-      console.error('Стек ошибки:', error && error.stack);
-      return false;
-    };
-  </script>
-
   <style>
     :root {
       --primary: #2563eb;
@@ -75,9 +28,7 @@
       --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
       --space-unit: 1rem;
     }
-    * {
-      box-sizing: border-box; margin: 0; padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       margin: 0; padding: var(--space-unit);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -85,9 +36,7 @@
       line-height: 1.5;
     }
     #root { max-width: 1200px; margin: 0 auto; }
-    h1, h2, h3 {
-      font-weight: 600; color: #1e3a8a; margin-bottom: 1.5rem;
-    }
+    h1, h2, h3 { font-weight: 600; color: #1e3a8a; margin-bottom: 1.5rem; }
     h1 {
       font-size: 2.25rem; letter-spacing: -0.025em;
       margin-bottom: 2rem; position: relative;
@@ -165,1189 +114,1065 @@
   </style>
 </head>
 <body>
-
-<div id="root"></div>
-
-<script type="text/babel">
-  // ErrorBoundary компонент
-  class ErrorBoundary extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = { hasError: false, error: null };
-    }
-
-    static getDerivedStateFromError(error) {
-      return { hasError: true, error };
-    }
-
-    componentDidCatch(error, errorInfo) {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-
-    render() {
-      if (this.state.hasError) {
-        return (
-          <div style={{color: 'red', padding: '20px'}}>
-            <h3>Произошла ошибка в приложении</h3>
-            <pre>{this.state.error?.message}</pre>
-          </div>
-        );
+  <div id="root"></div>
+  
+  <!-- Наш скрипт с type="text/babel" (должен идти после загрузки Babel) -->
+  <script type="text/babel">
+    // ---------- ErrorBoundary ----------
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
       }
-      return this.props.children;
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, errorInfo) {
+        console.error("ErrorBoundary caught an error:", error, errorInfo);
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div style={{ color: "red", padding: "20px" }}>
+              <h3>An error occurred in the application</h3>
+              <pre>{this.state.error?.message}</pre>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
     }
-  }
-
-  // ------------------ 1) Check DB Util ------------------
-  async function checkDB() {
-    try {
-      const res = await fetch("/api/cars");
-      if (!res.ok && res.status !== 404) throw new Error("Status=" + res.status);
-      return "MongoDB connected ✔";
-    } catch(err) {
-      return "DB error: " + err.message;
-    }
-  }
-
-  // ------------------ 2) Cars CRUD ------------------
-  async function createCar(payload) {
-    const res = await fetch("/api/cars", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Create car error");
-    }
-    return await res.json();
-  }
-  async function listCars() {
-    const res = await fetch("/api/cars");
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"List cars error");
-    }
-    return await res.json();
-  }
-
-  // ------------------ 3) Trucks CRUD ------------------
-  async function createTruck(payload) {
-    const res = await fetch("/api/trucks", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"Create truck error");
-    }
-    return await res.json();
-  }
-  async function listTrucks() {
-    const res = await fetch("/api/trucks");
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"List trucks error");
-    }
-    const data = await res.json();
-    data.forEach(d => {
-      if(d._id && !d.id) d.id = d._id;
-    });
-    return data;
-  }
-  async function getTruck(truck_id) {
-    const res = await fetch("/api/trucks/"+truck_id);
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"Get truck error");
-    }
-    const doc = await res.json();
-    if(doc._id && !doc.id) doc.id=doc._id;
-    return doc;
-  }
-  async function updateTruck(truck_id, updates) {
-    const res = await fetch("/api/trucks/"+truck_id, {
-      method: "PUT",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(updates)
-    });
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"Update truck error");
-    }
-    return await res.json();
-  }
-  async function deleteTruck(truck_id) {
-    const res = await fetch("/api/trucks/"+truck_id, {
-      method:"DELETE"
-    });
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"Delete truck error");
-    }
-    return true;
-  }
-
-  // ------------------ 4) Trailers CRUD ------------------
-  async function createTrailer(payload) {
-    const res = await fetch("/api/trailers", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"Create trailer error");
-    }
-    return await res.json();
-  }
-  async function listTrailers() {
-    const res = await fetch("/api/trailers");
-    if(!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail||"List trailers error");
-    }
-    const data = await res.json();
-    data.forEach(d => {
-      if(d._id && !d.id) d.id = d._id;
-    });
-    return data;
-  }
-
-  // ------------------ 5) CarTab ------------------
-  function CarTab(){
-    const [msg,setMsg] = React.useState("");
-    const [form,setForm] = React.useState({
-      vin: "1G1YZ26E895111766",
-      make: "Ford",
-      model:"Focus",
-      year:"2023",
-      length_in:"200",
-      width_in:"80",
-      height_ft:"5",
-      wheelbase_in:"110"
-    });
-
-    const handleSubmit = async(e)=>{
-      e.preventDefault();
-      setMsg("");
-      const payload = {
-        vin: form.vin,
-        make: form.make,
-        model: form.model,
-        year:parseInt(form.year,10),
-        length_in:parseFloat(form.length_in),
-        width_in:parseFloat(form.width_in),
-        height_ft:parseFloat(form.height_ft),
-        wheelbase_in:parseFloat(form.wheelbase_in)
-      };
+    
+    // ---------- DB CHECK ----------
+    async function checkDB() {
       try {
-        const data = await createCar(payload);
-        setMsg("Успешно создано! Car ID="+data.id);
+        // Обращаемся к эндпоинту /api/cars, который должен вернуть список автомобилей (если подключение к MongoDB успешно)
+        const res = await fetch("/api/cars");
+        if (!res.ok) throw new Error("Status=" + res.status);
+        return "MongoDB connected ✔";
       } catch(err) {
-        setMsg("Error: "+err.message);
+        return "DB error: " + err.message;
       }
-    };
-
-    return (
-      <div className="card">
-        <h2>Create Car (all dims in inches/feet)</h2>
-        {msg && <div>{msg}</div>}
-        <form onSubmit={handleSubmit}>
-          <label>VIN</label>
-          <input
-            value={form.vin}
-            onChange={(e)=> setForm({...form, vin:e.target.value})}
-          />
-          <label>Make</label>
-          <input
-            value={form.make}
-            onChange={(e)=> setForm({...form, make:e.target.value})}
-            required
-          />
-          <label>Model</label>
-          <input
-            value={form.model}
-            onChange={(e)=> setForm({...form, model:e.target.value})}
-            required
-          />
-          <label>Year</label>
-          <input
-            type="number"
-            value={form.year}
-            onChange={(e)=> setForm({...form, year:e.target.value})}
-            required
-          />
-          <label>Length (inches)</label>
-          <input
-            type="number"
-            value={form.length_in}
-            onChange={(e)=> setForm({...form, length_in:e.target.value})}
-          />
-          <label>Width (inches)</label>
-          <input
-            type="number"
-            value={form.width_in}
-            onChange={(e)=> setForm({...form, width_in:e.target.value})}
-          />
-          <label>Height (feet)</label>
-          <input
-            type="number"
-            value={form.height_ft}
-            onChange={(e)=> setForm({...form, height_ft:e.target.value})}
-          />
-          <label>Wheelbase (inches)</label>
-          <input
-            type="number"
-            value={form.wheelbase_in}
-            onChange={(e)=> setForm({...form, wheelbase_in:e.target.value})}
-          />
-          <button type="submit">Create Car</button>
-        </form>
-      </div>
-    );
-  }
-
-  // ------------------ 6) TrailerTab ------------------
-  function TrailerTab(){
-    const [msg,setMsg] = React.useState("");
-    const [form,setForm] = React.useState({
-      vin:"",
-      nickname:"My Trailer",
-      year:"2023",
-      capacity_in:"500"
-    });
-
-    const handleSubmit = async(e)=>{
-      e.preventDefault();
-      setMsg("");
-      const payload = {
-        vin: form.vin||null,
-        nickname: form.nickname,
-        year: parseInt(form.year,10),
-        capacity_in: parseFloat(form.capacity_in)
-      };
-      try {
-        const data = await createTrailer(payload);
-        setMsg("Успешно создано! Trailer ID="+data.id);
-      } catch(err) {
-        setMsg("Error: "+err.message);
-      }
-    };
-
-    return (
-      <div className="card">
-        <h2>Create Trailer</h2>
-        {msg && <div>{msg}</div>}
-        <form onSubmit={handleSubmit}>
-          <label>VIN (optional)</label>
-          <input
-            value={form.vin}
-            onChange={(e)=> setForm({...form, vin:e.target.value})}
-          />
-          <label>Nickname</label>
-          <input
-            value={form.nickname}
-            onChange={(e)=> setForm({...form, nickname:e.target.value})}
-            required
-          />
-          <label>Year</label>
-          <input
-            type="number"
-            value={form.year}
-            onChange={(e)=> setForm({...form, year:e.target.value})}
-            required
-          />
-          <label>Capacity (inches)</label>
-          <input
-            type="number"
-            value={form.capacity_in}
-            onChange={(e)=> setForm({...form, capacity_in:e.target.value})}
-          />
-          <button type="submit">Create Trailer</button>
-        </form>
-      </div>
-    );
-  }
-
-  // ------------------ 7) Full Truck Editor (Decks, Joints, etc.) ------------------
-
-  // JointEdgeSelect: выбор "a-Plat" / "b-Plat"
-  function JointEdgeSelect({ label, platforms, selected, onChange }) {
-    const handleChange = (v) => onChange(v);
-    return (
-      <div>
-        <label>{label}</label>
-        <select value={selected||""} onChange={(e)=>handleChange(e.target.value)}>
-          <option value="">(none)</option>
-          {platforms.map((plat) => (
-            <React.Fragment key={plat.id}>
-              <option value={`a-${plat.id}`}>a-{plat.id}</option>
-              <option value={`b-${plat.id}`}>b-{plat.id}</option>
-            </React.Fragment>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
-  // EdgeEditor c min_height, max_height, hydraulic
-  function EdgeEditor({edge, onChangeEdge}) {
-    const handle = (field, val) => {
-      onChangeEdge({...edge, [field]: val});
-    };
-    const isMobile = edge.type==="mobile";
-
-    return (
-      <div className="sub-block" style={{ background:"#fefefe" }}>
-        <div className="sub-title">Edge</div>
-        <label>Edge Type</label>
-        <select
-          value={edge.type||"static"}
-          onChange={(e)=>handle("type", e.target.value)}
-        >
-          <option value="static">static</option>
-          <option value="mobile">mobile</option>
-        </select>
-        <label>Height (inches)</label>
-        <input
-          type="number"
-          value={edge.height||""}
-          onChange={(e)=>handle("height", parseFloat(e.target.value)||0)}
-        />
-
-        <label>Has Chains?</label>
-        <input
-          type="checkbox"
-          checked={edge.chains||false}
-          onChange={(e)=>handle("chains", e.target.checked)}
-        />
-
-        {isMobile && (
-          <>
-            <label>Min Height</label>
-            <input
-              type="number"
-              value={edge.min_height||""}
-              onChange={(e)=>handle("min_height", parseFloat(e.target.value)||0)}
-            />
-            <label>Max Height</label>
-            <input
-              type="number"
-              value={edge.max_height||""}
-              onChange={(e)=>handle("max_height", parseFloat(e.target.value)||0)}
-            />
-            <label>Hydraulic Drive</label>
-            <input
-              type="checkbox"
-              checked={edge.is_hydraulic||false}
-              onChange={(e)=>handle("is_hydraulic", e.target.checked)}
-            />
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // SlideEditor
-  function SlideEditor({slide, onChangeSlide}) {
-    const handle = (f,v) => onChangeSlide({...slide, [f]: v});
-    return (
-      <div className="sub-block" style={{ background:"#f7fcff" }}>
-        <div className="sub-title">Slide (optional)</div>
-        <label>Type</label>
-        <select
-          value={slide.type||"none"}
-          onChange={(e)=>handle("type", e.target.value)}
-        >
-          <option value="none">none</option>
-          <option value="platform_slide">platform_slide</option>
-          <option value="a_slide">a_slide</option>
-          <option value="b_slide">b_slide</option>
-        </select>
-        <label>Min Length</label>
-        <input
-          type="number"
-          value={slide.min_length||""}
-          onChange={(e)=>handle("min_length", parseFloat(e.target.value)||0)}
-        />
-        <label>Max Length</label>
-        <input
-          type="number"
-          value={slide.max_length||""}
-          onChange={(e)=>handle("max_length", parseFloat(e.target.value)||0)}
-        />
-        <label>Min Distance</label>
-        <input
-          type="number"
-          value={slide.min_distance||""}
-          onChange={(e)=>handle("min_distance", parseFloat(e.target.value)||0)}
-        />
-        <label>Max Distance</label>
-        <input
-          type="number"
-          value={slide.max_distance||""}
-          onChange={(e)=>handle("max_distance", parseFloat(e.target.value)||0)}
-        />
-      </div>
-    );
-  }
-
-  // JointEditor
-  function JointEditor({joint, onChangeJoint, onRemove, platforms}) {
-    const handle = (f,v) => onChangeJoint({...joint, [f]:v});
-
-    return (
-      <div className="sub-block" style={{ background:"#fafafa" }}>
-        <div className="sub-title">Joint
-          <button type="button" onClick={onRemove} style={{ float:"right" }}>Remove</button>
-        </div>
-        <label>Type</label>
-        <select
-          value={joint.type||"static_joint"}
-          onChange={(e)=>handle("type", e.target.value)}
-        >
-          <option value="static_joint">static_joint</option>
-          <option value="open_free_joint">open_free_joint</option>
-          <option value="articulated_sliding_joint">articulated_sliding_joint</option>
-          <option value="semi_open_free_joint">semi_open_free_joint</option>
-          <option value="semi_fix_joint">semi_fix_joint</option>
-          <option value="turning_joint">turning_joint</option>
-        </select>
-
-        <JointEdgeSelect
-          label="Edge A"
-          platforms={platforms}
-          selected={joint.edge_a}
-          onChange={(val)=>handle("edge_a", val)}
-        />
-        <JointEdgeSelect
-          label="Edge B"
-          platforms={platforms}
-          selected={joint.edge_b}
-          onChange={(val)=>handle("edge_b", val)}
-        />
-
-        <label>Minimum Loading Distance</label>
-        <input
-          type="number"
-          value={joint.minimum_loading_distance||""}
-          onChange={(e)=>handle("minimum_loading_distance", parseFloat(e.target.value)||0)}
-        />
-        <label>Max Overlap</label>
-        <input
-          type="number"
-          value={joint.max_overlap||""}
-          onChange={(e)=>handle("max_overlap", parseFloat(e.target.value)||0)}
-        />
-      </div>
-    );
-  }
-
-  // PlatformEditor
-  function PlatformEditor({platform, onChangePlatform, onRemove}) {
-    const handle = (f,v) => onChangePlatform({...platform, [f]:v});
-    return (
-      <div className="sub-block" style={{ background:"#fffdf0" }}>
-        <div className="sub-title">
-          Platform {platform.id||""}
-          <button type="button" style={{ float:"right" }} onClick={onRemove}>Remove</button>
-        </div>
-        <label>Platform ID</label>
-        <input
-          value={platform.id||""}
-          onChange={(e)=>handle("id", e.target.value)}
-        />
-        <label>Deck Type</label>
-        <select
-          value={platform.deck_type||"upper_deck"}
-          onChange={(e)=>handle("deck_type", e.target.value)}
-        >
-          <option value="upper_deck">upper_deck</option>
-          <option value="lower_deck">lower_deck</option>
-        </select>
-        <label>Position (front->rear ordinal)</label>
-        <input
-          type="number"
-          value={platform.position||""}
-          onChange={(e)=>handle("position", parseInt(e.target.value)||0)}
-        />
-        <label>Default Length (inches)</label>
-        <input
-          type="number"
-          value={platform.default_length||0}
-          onChange={(e)=>handle("default_length", parseFloat(e.target.value)||0)}
-        />
-
-        {/* Edges */}
-        <h4>Edge A</h4>
-        <EdgeEditor
-          edge={platform.edge_a||{type:"static", height:50}}
-          onChangeEdge={(upd)=>handle("edge_a",upd)}
-        />
-        <h4>Edge B</h4>
-        <EdgeEditor
-          edge={platform.edge_b||{type:"static", height:50}}
-          onChangeEdge={(upd)=>handle("edge_b",upd)}
-        />
-
-        {/* Slide */}
-        <h4>Slide (optional)</h4>
-        {platform.slide? (
-          <SlideEditor
-            slide={platform.slide}
-            onChangeSlide={(upd)=>handle("slide",upd)}
-          />
-        ) : (
-          <button type="button" onClick={()=>handle("slide",{
-            type:"none",min_length:0,max_length:0, min_distance:0,max_distance:0
-          })}>
-            + Add Slide
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  // DeckEditor
-  function DeckEditor({deck, onChangeDeck, onRemoveDeck, globalPlatformCount, setGlobalPlatformCount}) {
-    const handle = (f,v) => onChangeDeck({...deck, [f]: v});
-
-    // Автосумма total_length
-    React.useEffect(()=>{
-      const sum = deck.platforms.reduce((acc,p)=> acc+(p.default_length||0),0);
-      if(sum!==deck.total_length) {
-        onChangeDeck({...deck, total_length: sum});
-      }
-    },[deck.platforms]);
-
-    // Добавить платформу
-    const addPlatform = () => {
-      const newNum = globalPlatformCount+1;
-      const newId = "Plat"+newNum;
-      const newP = {
-        id:newId, deck_type: deck.type, position: deck.platforms.length+1,
-        default_length:200,
-        edge_a:{type:"static", height:50},
-        edge_b:{type:"static", height:50},
-        slide:null
-      };
-      onChangeDeck({...deck, platforms:[...deck.platforms,newP]});
-      setGlobalPlatformCount(newNum);
-    };
-
-    // Удалить платформу
-    const removePlatform = (idx) => {
-      const arr = [...deck.platforms];
-      arr.splice(idx,1);
-      onChangeDeck({...deck, platforms: arr});
-    };
-
-    const handlePlatformChange = (idx, updated) => {
-      const arr = [...deck.platforms];
-      arr[idx] = updated;
-      onChangeDeck({...deck, platforms: arr});
-    };
-
-    // Joints
-    const allPlatformsValid = deck.platforms.every(p=> p.id && p.default_length>0);
-    const addJoint = () => {
-      const j = {
-        type:"static_joint",
-        edge_a:"",
-        edge_b:"",
-        minimum_loading_distance:0,
-        max_overlap:0
-      };
-      onChangeDeck({...deck, joints:[...deck.joints, j]});
-    };
-    const removeJoint = (idx) => {
-      const arr = [...deck.joints];
-      arr.splice(idx,1);
-      onChangeDeck({...deck, joints: arr});
-    };
-    const handleJointChange = (idx,upd) => {
-      const arr = [...deck.joints];
-      arr[idx]=upd;
-      onChangeDeck({...deck, joints:arr});
-    };
-
-    // Сортируем платформы
-    const sortedPlats = [...deck.platforms].sort((a,b)=>a.position-b.position);
-
-    return (
-      <div className="sub-block" style={{ background:"#fffae7" }}>
-        <div className="sub-title">
-          Deck: {deck.type}
-          <button type="button" onClick={onRemoveDeck} style={{ float:"right" }}>Remove Deck</button>
-        </div>
-
-        <label>Deck Type</label>
-        <select
-          value={deck.type||"upper_deck"}
-          onChange={(e)=>handle("type", e.target.value)}
-        >
-          <option value="upper_deck">upper_deck</option>
-          <option value="lower_deck">lower_deck</option>
-        </select>
-
-        <label>Total Length (auto-sum)</label>
-        <input
-          type="number"
-          readOnly
-          value={deck.total_length||0}
-        />
-
-        <h4>Platforms</h4>
-        <button type="button" onClick={addPlatform}>+ Add Platform</button>
-        {deck.platforms.map((p,i)=>(
-          <PlatformEditor
-            key={p.id||i}
-            platform={p}
-            onChangePlatform={(upd)=>handlePlatformChange(i,upd)}
-            onRemove={()=> removePlatform(i)}
-          />
-        ))}
-
-        <h4>Joints</h4>
-        {allPlatformsValid ? (
-          <>
-            <button type="button" onClick={addJoint}>+ Add Joint</button>
-            {deck.joints.map((j,i)=>(
-              <JointEditor
-                key={i}
-                joint={j}
-                onChangeJoint={(upd)=>handleJointChange(i,upd)}
-                onRemove={()=>removeJoint(i)}
-                platforms={sortedPlats}
-              />
-            ))}
-          </>
-        ) : (
-          <div style={{ opacity:0.6 }}>
-            <p>Complete all platforms first to enable Joints</p>
-            <button type="button" disabled>+ Add Joint</button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // VerticalConnectionEditor
-  function VerticalConnectionEditor({vc, onChangeVC, onRemove}) {
-    const handle = (f,v) => onChangeVC({...vc, [f]:v});
-    const parseProfile=(text)=>{
-      const out={};
-      text.split(",").forEach(chunk=>{
-        const [k,v] = chunk.split("=").map(x=>x.trim());
-        if(k) out[k]= parseFloat(v)||0;
+    }
+    
+    // ---------- TRUCK API FUNCTIONS ----------
+    async function createTruck(payload) {
+      const res = await fetch("/api/trucks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      handle("clearance_profile", out);
-    };
-    const makeProfileString=()=>{
-      if(!vc.clearance_profile) return "";
-      return Object.entries(vc.clearance_profile)
-        .map(([k,v])=>`${k}=${v}`)
-        .join(",");
-    };
-
-    return (
-      <div className="sub-block" style={{ background:"#fff3f3" }}>
-        <div className="sub-title">
-          Vertical Conn
-          <button type="button" style={{ float:"right" }} onClick={onRemove}>Remove</button>
-        </div>
-        <label>Upper Platform ID</label>
-        <input
-          value={vc.upper_platform_id||""}
-          onChange={(e)=>handle("upper_platform_id", e.target.value)}
-        />
-        <label>Lower Platform ID</label>
-        <input
-          value={vc.lower_platform_id||""}
-          onChange={(e)=>handle("lower_platform_id", e.target.value)}
-        />
-        <label>Clearance Profile (like "front=72,middle=70")</label>
-        <textarea
-          rows={2}
-          value={makeProfileString()}
-          onChange={(e)=> parseProfile(e.target.value)}
-        />
-        <label>Min Clearance (inches)</label>
-        <input
-          type="number"
-          value={vc.min_clearance||6}
-          onChange={(e)=> handle("min_clearance", parseFloat(e.target.value)||6)}
-        />
-      </div>
-    );
-  }
-
-  // TruckFullEditor
-  function TruckFullEditor(){
-    const [msg,setMsg] = React.useState("");
-    const [editingId,setEditingId] = React.useState(null);
-    const [truckList,setTruckList] = React.useState([]);
-    const [showConfirm,setShowConfirm] = React.useState(false);
-
-    // Счётчик для глобального именования платформ
-    const [globalPlatformCount,setGlobalPlatformCount] = React.useState(0);
-
-    // Основная форма
-    const [form,setForm] = React.useState({
-      vin:"",
-      nickname:"FullSpec Truck",
-      model:"Peterbilt 389",
-      year:"2023",
-      truck_type:"semi",
-      coupling_type:"none",
-      gvwr:"40000",
-      loading_spots:"0",
-      deck_count:"1"
-    });
-
-    // Списки палуб
-    const [decks,setDecks] = React.useState([]);
-    // Vertical connections
-    const [verticalConns,setVerticalConns] = React.useState([]);
-
-    // Загрузка списка траков
-    React.useEffect(()=>{
-      listTrucks().then(res=> setTruckList(res))
-                  .catch(err=> setMsg("Error listing trucks: "+err.message));
-    },[]);
-
-    // Синхронизировать количество палуб
-    React.useEffect(()=>{
-      const dCount = parseInt(form.deck_count,10);
-      if(dCount<1) {
-        setForm({...form, deck_count:"1"});
-        return;
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Create truck error");
       }
-      if(dCount>2) {
-        setForm({...form, deckcount:"2"});
-        return;
+      return await res.json();
+    }
+    async function listTrucks() {
+      const res = await fetch("/api/trucks");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "List trucks error");
       }
-      if(decks.length<dCount) {
-        const needed = dCount - decks.length;
-        const arr = [...decks];
-        for(let i=0; i<needed; i++){
-          arr.push({
-            type: arr.length===0?"upper_deck":"lower_deck",
-            total_length:0,
-            platforms:[],
-            joints:[]
-          });
-        }
-        setDecks(arr);
-      } else if(decks.length>dCount) {
-        setDecks(decks.slice(0,dCount));
+      return await res.json();
+    }
+    async function getTruck(truck_id) {
+      const res = await fetch(`/api/trucks/${truck_id}`);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Get truck error");
       }
-    },[form.deck_count]);
-
-    const handleForm=(field,val)=>{
-      setForm({...form, [field]:val});
-    };
-
-    // Удаление трака
-    const removeTruck= async(id)=>{
-      if(!confirm("Delete truck "+id+"?")) return;
-      try {
-        await deleteTruck(id);
-        setMsg("Deleted truck "+id);
-        setTruckList(await listTrucks());
-      } catch(err) {
-        setMsg("Error: "+err.message);
+      return await res.json();
+    }
+    async function updateTruck(truck_id, updates) {
+      const res = await fetch(`/api/trucks/${truck_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Update truck error");
       }
-    };
-
-    // Редактирование
-    const loadTruck= async(id)=>{
-      setMsg("Loading truck "+id);
-      try {
-        const doc= await getTruck(id);
-        setEditingId(doc.id);
-        setForm({
-          vin: doc.vin||"",
-          nickname: doc.nickname||"",
-          model: doc.model||"",
-          year: doc.year?String(doc.year):"2023",
-          truck_type: doc.truck_type||"semi",
-          coupling_type: doc.coupling_type||"none",
-          gvwr: doc.gvwr?String(doc.gvwr):"40000",
-          loading_spots: doc.loading_spots?String(doc.loading_spots):"0",
-          deck_count: doc.deck_count?String(doc.deck_count):"1"
-        });
-        const arr=[];
-        if(doc.upper_deck) arr.push(doc.upper_deck);
-        if(doc.lower_deck) arr.push(doc.lower_deck);
-        setDecks(arr);
-        const maxNum= arr.reduce((acc,dk)=>{
-          dk.platforms.forEach(pl=>{
-            const num = parseInt(pl.id.replace("Plat",""),10);
-            if(!isNaN(num) && num>acc) acc=num;
-          });
-          return acc;
-        },0);
-        setGlobalPlatformCount(maxNum);
-        setVerticalConns(doc.vertical_connections||[]);
-        setMsg("Editing truck "+doc.id);
-      } catch(err) {
-        setMsg("Error loading truck: "+err.message);
+      return await res.json();
+    }
+    async function deleteTruck(truck_id) {
+      const res = await fetch(`/api/trucks/${truck_id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Delete truck error");
       }
-    };
-
-    // Удаление палубы
-    const removeDeck=(idx)=>{
-      const arr=[...decks]; arr.splice(idx,1);
-      setDecks(arr);
-    };
-    // Обновление палубы
-    const handleDeckChange=(idx,upd)=>{
-      const arr=[...decks];
-      arr[idx]=upd;
-      setDecks(arr);
-    };
-
-    // Vertical connections
-    const addVC= ()=>{
-      setVerticalConns([...verticalConns,{
-        upper_platform_id:"",
-        lower_platform_id:"",
-        clearance_profile:{},
-        min_clearance:6
-      }]);
-    };
-    const removeVC=(idx)=>{
-      const arr=[...verticalConns];
-      arr.splice(idx,1);
-      setVerticalConns(arr);
-    };
-    const handleVCChange=(idx,upd)=>{
-      const arr=[...verticalConns];
-      arr[idx]=upd;
-      setVerticalConns(arr);
-    };
-
-    // Submit
-    const handleSubmit=(e)=>{
-      e.preventDefault();
-      setMsg("");
-      // Просто вызываем диалог подтверждения
-      setShowConfirm(true);
-    };
-
-    const doSaveTruck= async()=>{
-      setShowConfirm(false);
-      const payload={
-        vin: form.vin||null,
-        nickname: form.nickname,
-        model: form.model,
-        year: parseInt(form.year,10),
-        truck_type: form.truck_type,
-        coupling_type: form.coupling_type,
-        gvwr: parseFloat(form.gvwr),
-        loading_spots: parseInt(form.loading_spots,10),
-        deck_count: parseInt(form.deck_count,10)
-      };
-      if(decks[0]) payload.upper_deck=decks[0];
-      if(decks[1]) payload.lower_deck=decks[1];
-      if(verticalConns.length>0) payload.vertical_connections=verticalConns;
-
-      try {
-        if(!editingId) {
-          const cr= await createTruck(payload);
-          setMsg("Created Truck ID="+cr.id);
-        } else {
-          const upd= await updateTruck(editingId,payload);
-          setMsg("Updated Truck ID="+upd.id);
-        }
-        setEditingId(null);
-        setForm({
-          vin:"",
-          nickname:"",
-          model:"",
-          year:"2023",
-          truck_type:"semi",
-          coupling_type:"none",
-          gvwr:"40000",
-          loading_spots:"0",
-          deck_count:"1"
-        });
-        setDecks([]);
-        setGlobalPlatformCount(0);
-        setVerticalConns([]);
-        setTruckList(await listTrucks());
-      } catch(err) {
-        setMsg("Error saving truck: "+err.message);
-      }
-    };
-
-    return (
-      <div>
+      return true;
+    }
+    
+    // ---------- DUMMY FUNCTIONS FOR CARS AND TRAILERS ----------
+    async function createCar(payload) { /* Реализуется на сервере */ }
+    async function listCars() { return []; }
+    async function createTrailer(payload) { /* Реализуется на сервере */ }
+    async function listTrailers() { return []; }
+    
+    // ---------- DUMMY COMPONENTS FOR CARS AND TRAILERS ----------
+    function CarTab(){
+      const [msg, setMsg] = React.useState("");
+      const [form, setForm] = React.useState({
+        vin: "1G1YZ26E895111766",
+        make: "Ford",
+        model: "Focus",
+        year: "2023"
+      });
+      const handleSubmit = async (e) => { e.preventDefault(); setMsg("Car created (dummy)."); };
+      return (
         <div className="card">
-          <h2>{editingId?"Edit Truck (Full Spec)":"Create Truck (Full Spec)"}</h2>
+          <h2>Create Car (all dimensions in inches/feet)</h2>
+          {msg && <div>{msg}</div>}
+          <form onSubmit={handleSubmit}>
+            <label>VIN</label>
+            <input value={form.vin} onChange={(e)=> setForm({...form, vin: e.target.value})} />
+            <label>Make</label>
+            <input value={form.make} onChange={(e)=> setForm({...form, make: e.target.value})} required />
+            <label>Model</label>
+            <input value={form.model} onChange={(e)=> setForm({...form, model: e.target.value})} required />
+            <label>Year</label>
+            <input type="number" value={form.year} onChange={(e)=> setForm({...form, year: e.target.value})} required />
+            <button type="submit">Create Car</button>
+          </form>
+        </div>
+      );
+    }
+    function TrailerTab(){
+      const [msg, setMsg] = React.useState("");
+      const [form, setForm] = React.useState({
+        vin: "",
+        nickname: "My Trailer",
+        year: "2023",
+        capacity_in: "500"
+      });
+      const handleSubmit = async (e) => { e.preventDefault(); setMsg("Trailer created (dummy)."); };
+      return (
+        <div className="card">
+          <h2>Create Trailer</h2>
           {msg && <div>{msg}</div>}
           <form onSubmit={handleSubmit}>
             <label>VIN (optional)</label>
-            <input
-              value={form.vin}
-              onChange={(e)=> setForm({...form, vin:e.target.value})}
-            />
+            <input value={form.vin} onChange={(e)=> setForm({...form, vin: e.target.value})} />
             <label>Nickname</label>
-            <input
-              value={form.nickname}
-              onChange={(e)=> setForm({...form, nickname:e.target.value})}
-              required
-            />
-            <label>Model</label>
-            <input
-              value={form.model}
-              onChange={(e)=> setForm({...form, model:e.target.value})}
-              required
-            />
+            <input value={form.nickname} onChange={(e)=> setForm({...form, nickname: e.target.value})} required />
             <label>Year</label>
-            <input
-              type="number"
-              value={form.year}
-              onChange={(e)=> setForm({...form, year:e.target.value})}
-              required
-            />
-            <label>Truck Type</label>
-            <select
-              value={form.truck_type}
-              onChange={(e)=> setForm({...form, truck_type:e.target.value})}
-            >
-              <option value="semi">semi</option>
-              <option value="stinger_head">stinger_head</option>
-              <option value="stinger_five">stinger_five</option>
-              <option value="semi_platform">semi_platform</option>
-              <option value="pickup">pickup</option>
-              <option value="towtruck">towtruck</option>
-            </select>
-            <label>Coupling Type</label>
-            <select
-              value={form.coupling_type}
-              onChange={(e)=> setForm({...form, coupling_type:e.target.value})}
-            >
-              <option value="none">none</option>
-              <option value="5th_wheel">5th_wheel</option>
-              <option value="gooseneck">gooseneck</option>
-              <option value="bumper_pool">bumper_pool</option>
-            </select>
-            <label>GVWR (lbs)</label>
-            <input
-              type="number"
-              value={form.gvwr}
-              onChange={(e)=> setForm({...form, gvwr:e.target.value})}
-            />
-            <label>Loading Spots</label>
-            <input
-              type="number"
-              value={form.loading_spots}
-              onChange={(e)=> setForm({...form, loading_spots:e.target.value})}
-            />
-            <label>Deck Count (1 or 2)</label>
-            <input
-              type="number"
-              value={form.deck_count}
-              onChange={(e)=> setForm({...form, deck_count:e.target.value})}
-            />
-
-            {/* Render decks */}
-            {decks.map((dk, i)=>(
-              <div key={i} style={{
-                border:"1px dashed #ccc", padding:"1rem", margin:"1rem 0"
-              }}>
-                <DeckEditor
-                  deck={dk}
-                  onChangeDeck={(upd)=> handleDeckChange(i,upd)}
-                  onRemoveDeck={()=> removeDeck(i)}
-                  globalPlatformCount={globalPlatformCount}
-                  setGlobalPlatformCount={setGlobalPlatformCount}
-                />
-              </div>
-            ))}
-
-            {/* Vertical connections */}
-            <h4>Vertical Connections</h4>
-            <button type="button" onClick={addVC}>+ Add VerticalConn</button>
-            {verticalConns.map((vc,idx)=>(
-              <VerticalConnectionEditor
-                key={idx}
-                vc={vc}
-                onChangeVC={(upd)=>{
-                  const arr=[...verticalConns]; arr[idx]=upd;
-                  setVerticalConns(arr);
-                }}
-                onRemove={()=> removeVC(idx)}
-              />
-            ))}
-
-            <button type="submit" style={{ marginTop:"12px" }}>
-              {editingId?"Update Truck":"Create Truck"}
-            </button>
+            <input type="number" value={form.year} onChange={(e)=> setForm({...form, year: e.target.value})} required />
+            <button type="submit">Create Trailer</button>
           </form>
-
-          {/* Final confirmation */}
-          {showConfirm && (
-            <div style={{
-              background:"#fff", border:"1px solid #ccc", padding:"1rem", marginTop:"1rem"
-            }}>
-              <h3>Confirm Final Truck?</h3>
-              <p>You have {form.deck_count} deck(s). Continue?</p>
-              <button
-                style={{ background:"#c3fbc2", marginRight:"0.5rem" }}
-                onClick={doSaveTruck}
-              >
-                Confirm
-              </button>
-              <button onClick={()=>setShowConfirm(false)}>Cancel</button>
+        </div>
+      );
+    }
+    
+    // ---------- COMPONENTS FOR TRUCK EDITOR ----------
+    function EdgeEditor({ edge, onChangeEdge }) {
+      const handle = (field, val) => { onChangeEdge({ ...edge, [field]: val }); };
+      const isMobile = edge.type === "mobile";
+      return (
+        <div className="sub-block" style={{ background: "#fefefe" }}>
+          <div className="sub-title">Edge</div>
+          <label>Edge Type</label>
+          <select value={edge.type || "static"} onChange={(e) => handle("type", e.target.value)}>
+            <option value="static">static</option>
+            <option value="mobile">mobile</option>
+          </select>
+          <label>Height (inches)</label>
+          <input type="number" value={edge.height || ""} onChange={(e) => handle("height", parseFloat(e.target.value) || 0)} />
+          <label>Load Overhang (inches)</label>
+          <input type="number" value={edge.load_overhang || ""} onChange={(e) => handle("load_overhang", parseFloat(e.target.value) || 0)} />
+          <label>Deeping (inches, max 4)</label>
+          <input type="number" value={edge.deeping || ""} onChange={(e) => handle("deeping", parseFloat(e.target.value) || 0)} />
+          <label>Has Chains?</label>
+          <input type="checkbox" checked={edge.chains || false} onChange={(e) => handle("chains", e.target.checked)} />
+          {isMobile && (
+            <>
+              <label>Min Height</label>
+              <input type="number" value={edge.min_height || ""} onChange={(e) => handle("min_height", parseFloat(e.target.value) || 0)} />
+              <label>Max Height</label>
+              <input type="number" value={edge.max_height || ""} onChange={(e) => handle("max_height", parseFloat(e.target.value) || 0)} />
+              <label>Hydraulic Drive</label>
+              <input type="checkbox" checked={edge.is_hydraulic || false} onChange={(e) => handle("is_hydraulic", e.target.checked)} />
+            </>
+          )}
+        </div>
+      );
+    }
+    
+    function SlideEditor({ slide, onChangeSlide }) {
+      const handle = (f, v) => onChangeSlide({ ...slide, [f]: v });
+      return (
+        <div className="sub-block" style={{ background: "#f7fcff" }}>
+          <div className="sub-title">Slide (optional)</div>
+          <label>Type</label>
+          <select value={slide.type || "none"} onChange={(e) => handle("type", e.target.value)}>
+            <option value="none">none</option>
+            <option value="platform_slide">platform_slide</option>
+            <option value="a_slide">a_slide</option>
+            <option value="b_slide">b_slide</option>
+          </select>
+          <label>Min Length</label>
+          <input type="number" value={slide.min_length || ""} onChange={(e) => handle("min_length", parseFloat(e.target.value) || 0)} />
+          <label>Max Length</label>
+          <input type="number" value={slide.max_length || ""} onChange={(e) => handle("max_length", parseFloat(e.target.value) || 0)} />
+          <label>Min Distance</label>
+          <input type="number" value={slide.min_distance || ""} onChange={(e) => handle("min_distance", parseFloat(e.target.value) || 0)} />
+          <label>Max Distance</label>
+          <input type="number" value={slide.max_distance || ""} onChange={(e) => handle("max_distance", parseFloat(e.target.value) || 0)} />
+        </div>
+      );
+    }
+    
+    function JointEditor({ joint, onChangeJoint, onRemove }) {
+      const handle = (f, v) => onChangeJoint({ ...joint, [f]: v });
+      return (
+        <div className="sub-block" style={{ background: "#fafafa" }}>
+          <div className="sub-title">
+            Joint
+            <button type="button" onClick={() => { if (confirm("Are you sure you want to remove this joint?")) onRemove(); }} style={{ float: "right" }}>
+              Remove
+            </button>
+          </div>
+          <label>Type</label>
+          <select value={joint.type || "static_joint"} onChange={(e) => handle("type", e.target.value)}>
+            <option value="static_joint">static_joint</option>
+            <option value="open_free_joint">open_free_joint</option>
+            <option value="articulated_sliding_joint">articulated_sliding_joint</option>
+            <option value="semi_open_free_joint">semi_open_free_joint</option>
+            <option value="semi_fix_joint">semi_fix_joint</option>
+            <option value="turning_joint">turning_joint</option>
+          </select>
+          <div>
+            <label>Connection</label>
+            <div>{joint.platform_from} (b) → {joint.platform_to} (a)</div>
+          </div>
+          <label>Minimum Loading Distance</label>
+          <input type="number" value={joint.minimum_loading_distance || ""} onChange={(e) => handle("minimum_loading_distance", parseFloat(e.target.value) || 0)} />
+          <label>Max Overlap</label>
+          <input type="number" value={joint.max_overlap || ""} onChange={(e) => handle("max_overlap", parseFloat(e.target.value) || 0)} />
+        </div>
+      );
+    }
+    
+    function PlatformEditor({ platform, onChangePlatform, onRemove, onSavePlatform }) {
+      const handle = (f, v) => onChangePlatform({ ...platform, [f]: v });
+      return (
+        <div className="sub-block" style={{ background: "#fffdf0" }}>
+          <div className="sub-title">
+            Platform {platform.id || ""}
+            <button type="button" style={{ float: "right" }} onClick={() => { if (confirm("Are you sure you want to remove this platform?")) onRemove(); }}>Remove</button>
+          </div>
+          <label>Platform ID</label>
+          <input value={platform.id || ""} readOnly />
+          <label>Deck Type</label>
+          <select value={platform.deck_type || "upper_deck"} onChange={(e) => handle("deck_type", e.target.value)}>
+            <option value="upper_deck">upper_deck</option>
+            <option value="lower_deck">lower_deck</option>
+          </select>
+          <label>Position (front-to-rear order)</label>
+          <input type="number" value={platform.position || ""} onChange={(e) => handle("position", parseInt(e.target.value) || 0)} />
+          <label>Default Length (inches)</label>
+          <input type="number" value={platform.default_length || 0} onChange={(e) => handle("default_length", parseFloat(e.target.value) || 0)} />
+          <h4>Edge A</h4>
+          <EdgeEditor edge={platform.edge_a || { type: "static", height: 50 }} onChangeEdge={(upd) => handle("edge_a", upd)} />
+          <h4>Edge B</h4>
+          <EdgeEditor edge={platform.edge_b || { type: "static", height: 50 }} onChangeEdge={(upd) => handle("edge_b", upd)} />
+          <h4>Slide (optional)</h4>
+          {platform.slide ? (
+            <SlideEditor slide={platform.slide} onChangeSlide={(upd) => handle("slide", upd)} />
+          ) : (
+            <button type="button" onClick={() => handle("slide", { type: "none", min_length: 0, max_length: 0, min_distance: 0, max_distance: 0 })}>
+              + Add Slide
+            </button>
+          )}
+          <button type="button" onClick={() => { if (confirm("Are you sure you want to save this platform?")) onSavePlatform(platform); }} style={{ marginTop: "10px" }}>
+            Save Platform
+          </button>
+        </div>
+      );
+    }
+    
+    function DeckEditor({ deck, onChangeDeck, onRemoveDeck, globalPlatformCount, setGlobalPlatformCount }) {
+      const handle = (f, v) => onChangeDeck({ ...deck, [f]: v });
+      React.useEffect(() => {
+        const sum = deck.platforms.reduce((acc, p) => acc + (p.default_length || 0), 0);
+        if (sum !== deck.total_length) { onChangeDeck({ ...deck, total_length: sum }); }
+      }, [deck.platforms]);
+      const addPlatform = () => {
+        if (deck.platforms_allowed && deck.platforms.length >= deck.platforms_allowed) {
+          alert("Maximum number of platforms reached");
+          return;
+        }
+        const newNum = globalPlatformCount + 1;
+        const newId = "Plat" + newNum;
+        const newP = {
+          id: newId,
+          deck_type: deck.type,
+          position: deck.platforms.length + 1,
+          default_length: 200,
+          edge_a: { type: "static", height: 50 },
+          edge_b: { type: "static", height: 50 },
+          slide: null,
+          saved: false
+        };
+        onChangeDeck({ ...deck, platforms: [...deck.platforms, newP] });
+        setGlobalPlatformCount(newNum);
+      };
+      const removePlatform = (idx) => {
+        if (confirm("Are you sure you want to remove this platform?")) {
+          const arr = [...deck.platforms];
+          arr.splice(idx, 1);
+          onChangeDeck({ ...deck, platforms: arr });
+        }
+      };
+      const handlePlatformChange = (idx, updated) => {
+        const arr = [...deck.platforms];
+        arr[idx] = updated;
+        onChangeDeck({ ...deck, platforms: arr });
+      };
+      const savePlatform = (platform) => {
+        const idx = deck.platforms.findIndex(p => p.id === platform.id);
+        if (idx >= 0) {
+          const updated = { ...deck.platforms[idx], saved: true };
+          handlePlatformChange(idx, updated);
+        }
+      };
+      const addJoint = () => {
+        const sortedPlats = [...deck.platforms].sort((a, b) => a.position - b.position);
+        for (let i = 0; i < sortedPlats.length - 1; i++) {
+          let pairExists = deck.joints.some(j => j.platform_from === sortedPlats[i].id && j.platform_to === sortedPlats[i + 1].id);
+          if (!pairExists) {
+            const newJoint = {
+              type: "static_joint",
+              platform_from: sortedPlats[i].id,
+              platform_to: sortedPlats[i + 1].id,
+              minimum_loading_distance: 0,
+              max_overlap: 0
+            };
+            onChangeDeck({ ...deck, joints: [...deck.joints, newJoint] });
+            return;
+          }
+        }
+        alert("All platforms are already connected");
+      };
+      const removeJoint = (idx) => {
+        if (confirm("Are you sure you want to remove this joint?")) {
+          const arr = [...deck.joints];
+          arr.splice(idx, 1);
+          onChangeDeck({ ...deck, joints: arr });
+        }
+      };
+      const handleJointChange = (idx, upd) => {
+        const arr = [...deck.joints];
+        arr[idx] = upd;
+        onChangeDeck({ ...deck, joints: arr });
+      };
+      const sortedPlats = [...deck.platforms].sort((a, b) => a.position - b.position);
+      return (
+        <div className="sub-block" style={{ background: "#fffae7", border: deck.accent ? "2px solid var(--primary)" : undefined }}>
+          <div className="sub-title">
+            Deck: {deck.type}
+            <button type="button" onClick={() => handle("accent", !deck.accent)} style={{ float: "right", marginLeft: "10px" }}>
+              {deck.accent ? "Unaccent" : "Set Accent"}
+            </button>
+            <button type="button" onClick={() => { if (confirm("Are you sure you want to remove this deck?")) onRemoveDeck(); }} style={{ float: "right" }}>
+              Remove Deck
+            </button>
+          </div>
+          <label>Deck Type</label>
+          <select value={deck.type || "upper_deck"} onChange={(e) => handle("type", e.target.value)}>
+            <option value="upper_deck">upper_deck</option>
+            <option value="lower_deck">lower_deck</option>
+          </select>
+          <label>Number of Platforms on Deck</label>
+          <input type="number" value={deck.platforms_allowed || ""} onChange={(e) => handle("platforms_allowed", parseInt(e.target.value) || 0)} />
+          <label>Total Length (auto-sum)</label>
+          <input type="number" readOnly value={deck.total_length || 0} />
+          <h4>Platforms</h4>
+          {sortedPlats.map((p, i) => (
+            <PlatformEditor key={p.id || i} platform={p} onChangePlatform={(upd) => handlePlatformChange(i, upd)} onRemove={() => removePlatform(i)} onSavePlatform={savePlatform} />
+          ))}
+          {(deck.platforms_allowed ? deck.platforms.length < deck.platforms_allowed : true) && (
+            <button type="button" onClick={addPlatform}>+ Add Platform</button>
+          )}
+          {sortedPlats.length > 0 && sortedPlats.every(p => p.id && p.default_length > 0 && p.saved) ? (
+            deck.accepted ? (
+              <>
+                <h4>Joints</h4>
+                <button type="button" onClick={addJoint}>+ Add Joint</button>
+                {deck.joints.map((j, i) => (
+                  <JointEditor key={i} joint={j} onChangeJoint={(upd) => handleJointChange(i, upd)} onRemove={() => removeJoint(i)} />
+                ))}
+                <button type="button" onClick={() => { if (confirm("Are you sure you want to save this deck?")) { handle("saved", true); } }} style={{ marginTop: "10px" }}>
+                  Save Deck
+                </button>
+              </>
+            ) : (
+              <button type="button" onClick={() => handle("accepted", true)}>Accept Deck</button>
+            )
+          ) : (
+            <div style={{ opacity: 0.6 }}>
+              <p>Complete and save all platforms first to enable joints</p>
+              <button type="button" disabled>+ Add Joint</button>
             </div>
           )}
         </div>
-
-        <div className="card">
-          <h2>Current Trucks List</h2>
-          {truckList.map((tk) => (
-            <div key={tk.id} style={{
-              border:"1px solid #ccc", background:"#f9fafb",
-              padding:"1rem", marginBottom:"1rem"
-            }}>
-              ID={tk.id||""}, VIN={tk.vin||"N/A"}, Nickname={tk.nickname||""}, 
-              Year={tk.year||"?"}
-              <br/>
-              <button
-                style={{ marginRight:"1rem", background:"#eee" }}
-                onClick={()=>loadTruck(tk.id)}
-              >
-                Edit
-              </button>
-              <button
-                style={{ background:"#ffe5e5" }}
-                onClick={()=> removeTruck(tk.id)}
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // ------------------ 8) ListTab (All) ------------------
-  function ListTab(){
-    const [msg,setMsg] = React.useState("");
-    const [cars,setCars] = React.useState([]);
-    const [trucks,setTrucks] = React.useState([]);
-    const [trailers,setTrailers] = React.useState([]);
-
-    const loadAll = async()=>{
-      setMsg("Loading...");
-      try {
-        const c = await listCars();
-        const t = await listTrucks();
-        const r = await listTrailers();
-        setCars(c); setTrucks(t); setTrailers(r);
-        setMsg(`Loaded cars=${c.length}, trucks=${t.length}, trailers=${r.length}`);
-      } catch(err) {
-        setMsg("Error: "+err.message);
-      }
-    };
-
-    React.useEffect(()=>{ loadAll(); },[]);
-
-    return (
-      <div className="card">
-        <h2>List All (Cars, Trucks, Trailers)</h2>
-        {msg && <div>{msg}</div>}
-        <button onClick={loadAll}>Reload</button>
-        <h3>Cars</h3>
-        <ul>
-          {cars.map(car=>(
-            <li key={car.id}>ID={car.id}, VIN={car.vin}, Make={car.make}, Year={car.year}</li>
-          ))}
-        </ul>
-        <h3>Trucks</h3>
-        <ul>
-          {trucks.map(tk=>(
-            <li key={tk.id}>ID={tk.id}, Nickname={tk.nickname}, Type={tk.truck_type}, Year={tk.year}</li>
-          ))}
-        </ul>
-        <h3>Trailers</h3>
-        <ul>
-          {trailers.map(tr=>(
-            <li key={tr.id}>
-              ID={tr.id}, Nickname={tr.nickname}, Year={tr.year}, capacity={tr.capacity_in}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-
-  // ------------------ 9) Main App ------------------
-  function App(){
-    const [activeTab,setActiveTab] = React.useState("car");
-    const [dbStatus,setDbStatus] = React.useState("Checking DB...");
-
-    React.useEffect(()=>{
-      checkDB().then(st=> setDbStatus(st));
-    },[]);
-
-    return (
-      <div>
-        <h1>CarLogix Full Debug Interface</h1>
-        <p style={{ fontStyle:"italic" }}>{dbStatus}</p>
-        <div className="tabs">
-          <button onClick={()=>setActiveTab("car")}>Cars</button>
-          <button onClick={()=>setActiveTab("truck")}>Trucks (Full Editor)</button>
-          <button onClick={()=>setActiveTab("trailer")}>Trailers</button>
-          <button onClick={()=>setActiveTab("list")}>List All</button>
-        </div>
-
-        {activeTab==="car" && <CarTab/>}
-        {activeTab==="truck" && <TruckFullEditor/>}
-        {activeTab==="trailer" && <TrailerTab/>}
-        {activeTab==="list" && <ListTab/>}
-      </div>
-    );
-  }
-
-  console.log('Начало инициализации React');
-  
-  try {
-    const rootElement = document.getElementById('root');
-    if (!rootElement) {
-      throw new Error('Root element не найден');
+      );
     }
     
-    console.log('Root element найден, создаём приложение');
-    
-    const renderApp = () => {
-      const root = ReactDOM.createRoot(rootElement);
-      root.render(
-        <React.StrictMode>
-          <ErrorBoundary>
-            <App/>
-          </ErrorBoundary>
-        </React.StrictMode>
+    function VerticalConnectionEditor({ vc, onChangeVC, onRemove, platformOptions }) {
+      const handle = (f, v) => onChangeVC({ ...vc, [f]: v });
+      const parseProfile = (text) => {
+        const out = {};
+        text.split(",").forEach(chunk => {
+          const [k, v] = chunk.split("=").map(x => x.trim());
+          if (k) out[k] = parseFloat(v) || 0;
+        });
+        handle("clearance_profile", out);
+      };
+      const makeProfileString = () => {
+        if (!vc.clearance_profile) return "";
+        return Object.entries(vc.clearance_profile).map(([k, v]) => `${k}=${v}`).join(",");
+      };
+      return (
+        <div className="sub-block" style={{ background: "#fff3f3" }}>
+          <div className="sub-title">
+            Vertical Connection
+            <button type="button" onClick={() => { if (confirm("Are you sure you want to remove this vertical connection?")) onRemove(); }} style={{ float: "right" }}>
+              Remove
+            </button>
+          </div>
+          <label>Upper Platform</label>
+          <select value={vc.upper_platform_id || ""} onChange={(e) => handle("upper_platform_id", e.target.value)}>
+            <option value="">Select platform</option>
+            {platformOptions.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.id} ({p.deck_type})
+              </option>
+            ))}
+          </select>
+          <label>Lower Platform</label>
+          <select value={vc.lower_platform_id || ""} onChange={(e) => handle("lower_platform_id", e.target.value)}>
+            <option value="">Select platform</option>
+            {platformOptions.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.id} ({p.deck_type})
+              </option>
+            ))}
+          </select>
+          <label>Clearance Profile (e.g., "front=72,middle=70")</label>
+          <textarea rows={2} value={makeProfileString()} onChange={(e) => parseProfile(e.target.value)} />
+          <label>Min Clearance (inches)</label>
+          <input type="number" value={vc.min_clearance || 6} onChange={(e) => handle("min_clearance", parseFloat(e.target.value) || 6)} />
+        </div>
       );
-    };
-
-    // Даём время на полную загрузку React
-    setTimeout(renderApp, 100);
+    }
     
-  } catch (error) {
-    console.error('Ошибка при инициализации:', error);
-    document.body.innerHTML += `
-      <div style="color:red;padding:20px">
-        Ошибка инициализации: ${error.message}
-      </div>
-    `;
-  }
-
-</script>
+    function TruckDiagram({ decks, verticalConns }) {
+      const scale = 0.5; // 1 inch = 0.5 pixels
+      const platformHeight = 40;
+      const spacing = 10;
+      const deckMargin = 60;
+      const upperDeck = decks[0] || { platforms: [], total_length: 0, joints: [] };
+      const lowerDeck = decks[1] || { platforms: [], total_length: 0, joints: [] };
+    
+      let upperPositions = [];
+      let xPos = 50;
+      upperDeck.platforms.forEach(platform => {
+        const width = (platform.default_length || 200) * scale;
+        upperPositions.push({ id: platform.id, x: xPos, width, platform });
+        xPos += width + spacing;
+      });
+      const upperDeckTotalWidth = xPos;
+      let lowerPositions = [];
+      xPos = 50;
+      lowerDeck.platforms.forEach(platform => {
+        const width = (platform.default_length || 200) * scale;
+        lowerPositions.push({ id: platform.id, x: xPos, width, platform });
+        xPos += width + spacing;
+      });
+      verticalConns.forEach(vc => {
+        const upPos = upperPositions.find(pos => pos.id === vc.upper_platform_id);
+        const lowIndex = lowerPositions.findIndex(pos => pos.id === vc.lower_platform_id);
+        if (upPos && lowIndex !== -1) { lowerPositions[lowIndex].x = upPos.x; }
+      });
+      const diagramWidth = Math.max(upperDeckTotalWidth, lowerPositions.reduce((max, pos) => Math.max(max, pos.x + pos.width + 50), 0));
+      const diagramHeight = 150 + deckMargin;
+      return (
+        <div style={{ marginTop: "20px" }}>
+          <h3>Truck Diagram</h3>
+          <svg width={diagramWidth} height={diagramHeight} style={{ border: "1px solid #ccc", background: "#fff" }}>
+            <defs>
+              <linearGradient id="upperPlatformGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#e0f7fa" />
+                <stop offset="100%" stopColor="#80deea" />
+              </linearGradient>
+              <linearGradient id="lowerPlatformGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#e8eaf6" />
+                <stop offset="100%" stopColor="#9fa8da" />
+              </linearGradient>
+              <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="2" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.3"/>
+              </filter>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                <path d="M0,0 L0,10 L10,5 z" fill="#3f51b5" />
+              </marker>
+            </defs>
+            <g id="upperDeck" filter="url(#dropShadow)">
+              <text x="20" y="30" fill="#000" fontSize="16" fontWeight="bold">
+                Upper Deck (Total Length: {upperDeck.total_length || 0} in)
+              </text>
+              {upperPositions.map((pos) => {
+                const { platform } = pos;
+                const rectY = 40;
+                return (
+                  <g key={pos.id}>
+                    <rect x={pos.x} y={rectY} width={pos.width} height={platformHeight}
+                          fill="url(#upperPlatformGradient)" stroke="#00796b" rx="5" ry="5" />
+                    <text x={pos.x + pos.width/2} y={rectY + platformHeight/2 + 5}
+                          textAnchor="middle" fill="#004d40" fontSize="14">
+                      {pos.id} ({platform.default_length} in)
+                    </text>
+                    <line x1={pos.x} y1={rectY + platformHeight - 5} x2={pos.x + pos.width} y2={rectY + platformHeight - 5}
+                          stroke="#004d40" strokeWidth="2" />
+                    {platform.edge_a && platform.edge_a.type === "mobile" && (() => {
+                      const delta = platform.edge_a.max_height - platform.edge_a.min_height;
+                      const angle = Math.atan(delta / (platform.default_length || 200)) * 180 / Math.PI;
+                      const zoneHeight = delta * scale;
+                      return (
+                        <>
+                          <polygon points={`${pos.x},${rectY} ${pos.x+pos.width},${rectY} ${pos.x+pos.width},${rectY - zoneHeight} ${pos.x},${rectY - zoneHeight}`}
+                                   fill="rgba(255,152,0,0.2)" stroke="#ff9800" strokeDasharray="4,2" />
+                          <text x={pos.x + pos.width/2} y={rectY - zoneHeight - 5} textAnchor="middle"
+                                fill="#ff9800" fontSize="12">
+                            {angle.toFixed(1)}° ({platform.edge_a.min_height}-{platform.edge_a.max_height} in)
+                          </text>
+                        </>
+                      );
+                    })()}
+                    {platform.edge_a && platform.edge_a.type !== "mobile" && platform.edge_a.chains && (
+                      <text x={pos.x + 5} y={rectY + 15} fill="#000" fontSize="16">⛓</text>
+                    )}
+                    {platform.edge_b && platform.edge_b.type === "mobile" && (() => {
+                      const delta = platform.edge_b.max_height - platform.edge_b.min_height;
+                      const angle = Math.atan(delta / (platform.default_length || 200)) * 180 / Math.PI;
+                      const zoneHeight = delta * scale;
+                      return (
+                        <>
+                          <polygon points={`${pos.x},${rectY+platformHeight} ${pos.x+pos.width},${rectY+platformHeight} ${pos.x+pos.width},${rectY+platformHeight + zoneHeight} ${pos.x},${rectY+platformHeight + zoneHeight}`}
+                                   fill="rgba(255,152,0,0.2)" stroke="#ff9800" strokeDasharray="4,2" />
+                          <text x={pos.x + pos.width/2} y={rectY+platformHeight + zoneHeight + 15} textAnchor="middle"
+                                fill="#ff9800" fontSize="12">
+                            {angle.toFixed(1)}° ({platform.edge_b.min_height}-{platform.edge_b.max_height} in)
+                          </text>
+                        </>
+                      );
+                    })()}
+                    {platform.edge_b && platform.edge_b.type !== "mobile" && platform.edge_b.chains && (
+                      <text x={pos.x + pos.width - 20} y={rectY+platformHeight + 15} fill="#000" fontSize="16">⛓</text>
+                    )}
+                  </g>
+                );
+              })}
+              {upperDeck.joints && upperDeck.joints.map((joint, index) => {
+                const fromPos = upperPositions.find(pos => pos.id === joint.platform_from);
+                const toPos = upperPositions.find(pos => pos.id === joint.platform_to);
+                if (fromPos && toPos) {
+                  const y = 40 + platformHeight/2;
+                  return (
+                    <g key={"uj" + index}>
+                      <line x1={fromPos.x + fromPos.width} y1={y} x2={toPos.x} y2={y}
+                            stroke="#d32f2f" strokeWidth="2" markerEnd="url(#arrow)" />
+                      <text x={(fromPos.x + fromPos.width + toPos.x)/2} y={y - 10}
+                            fill="#d32f2f" fontSize="12">{joint.type}</text>
+                    </g>
+                  );
+                }
+                return null;
+              })}
+            </g>
+            <g id="lowerDeck" filter="url(#dropShadow)">
+              <text x="20" y={80 + deckMargin} fill="#000" fontSize="16" fontWeight="bold">
+                Lower Deck (Total Length: {lowerDeck.total_length || 0} in)
+              </text>
+              {lowerPositions.map((pos) => {
+                const { platform } = pos;
+                const rectY = 90 + deckMargin;
+                return (
+                  <g key={pos.id}>
+                    <rect x={pos.x} y={rectY} width={pos.width} height={platformHeight}
+                          fill="url(#lowerPlatformGradient)" stroke="#303f9f" rx="5" ry="5" />
+                    <text x={pos.x + pos.width/2} y={rectY + platformHeight/2 + 5}
+                          textAnchor="middle" fill="#1a237e" fontSize="14">
+                      {pos.id} ({platform.default_length} in)
+                    </text>
+                    <line x1={pos.x} y1={rectY + platformHeight - 5} x2={pos.x + pos.width} y2={rectY + platformHeight - 5}
+                          stroke="#1a237e" strokeWidth="2" />
+                    {platform.edge_a && platform.edge_a.type === "mobile" && (() => {
+                      const delta = platform.edge_a.max_height - platform.edge_a.min_height;
+                      const angle = Math.atan(delta / (platform.default_length || 200)) * 180 / Math.PI;
+                      const zoneHeight = delta * scale;
+                      return (
+                        <>
+                          <polygon points={`${pos.x},${rectY} ${pos.x+pos.width},${rectY} ${pos.x+pos.width},${rectY - zoneHeight} ${pos.x},${rectY - zoneHeight}`}
+                                   fill="rgba(255,152,0,0.2)" stroke="#ff9800" strokeDasharray="4,2" />
+                          <text x={pos.x + pos.width/2} y={rectY - zoneHeight - 5} textAnchor="middle"
+                                fill="#ff9800" fontSize="12">
+                            {angle.toFixed(1)}° ({platform.edge_a.min_height}-{platform.edge_a.max_height} in)
+                          </text>
+                        </>
+                      );
+                    })()}
+                    {platform.edge_a && platform.edge_a.type !== "mobile" && platform.edge_a.chains && (
+                      <text x={pos.x + 5} y={rectY + 15} fill="#000" fontSize="16">⛓</text>
+                    )}
+                    {platform.edge_b && platform.edge_b.type === "mobile" && (() => {
+                      const delta = platform.edge_b.max_height - platform.edge_b.min_height;
+                      const angle = Math.atan(delta / (platform.default_length || 200)) * 180 / Math.PI;
+                      const zoneHeight = delta * scale;
+                      return (
+                        <>
+                          <polygon points={`${pos.x},${rectY+platformHeight} ${pos.x+pos.width},${rectY+platformHeight} ${pos.x+pos.width},${rectY+platformHeight + zoneHeight} ${pos.x},${rectY+platformHeight + zoneHeight}`}
+                                   fill="rgba(255,152,0,0.2)" stroke="#ff9800" strokeDasharray="4,2" />
+                          <text x={pos.x + pos.width/2} y={rectY+platformHeight + zoneHeight + 15} textAnchor="middle"
+                                fill="#ff9800" fontSize="12">
+                            {angle.toFixed(1)}° ({platform.edge_b.min_height}-{platform.edge_b.max_height} in)
+                          </text>
+                        </>
+                      );
+                    })()}
+                    {platform.edge_b && platform.edge_b.type !== "mobile" && platform.edge_b.chains && (
+                      <text x={pos.x + pos.width - 20} y={rectY+platformHeight + 15} fill="#000" fontSize="16">⛓</text>
+                    )}
+                  </g>
+                );
+              })}
+              {lowerDeck.joints && lowerDeck.joints.map((joint, index) => {
+                const fromPos = lowerPositions.find(pos => pos.id === joint.platform_from);
+                const toPos = lowerPositions.find(pos => pos.id === joint.platform_to);
+                if (fromPos && toPos) {
+                  const y = 90 + deckMargin + platformHeight/2;
+                  return (
+                    <g key={"lj" + index}>
+                      <line x1={fromPos.x + fromPos.width} y1={y} x2={toPos.x} y2={y}
+                            stroke="#d32f2f" strokeWidth="2" markerEnd="url(#arrow)" />
+                      <text x={(fromPos.x + fromPos.width + toPos.x) / 2} y={y - 10}
+                            fill="#d32f2f" fontSize="12">{joint.type}</text>
+                    </g>
+                  );
+                }
+                return null;
+              })}
+            </g>
+            {verticalConns.map((vc, index) => {
+              const upPos = upperPositions.find(pos => pos.id === vc.upper_platform_id);
+              const lowPos = lowerPositions.find(pos => pos.id === vc.lower_platform_id);
+              if (!upPos || !lowPos) return null;
+              const upY = 40 + platformHeight;
+              const lowY = 90 + deckMargin;
+              return (
+                <g key={"vc" + index}>
+                  <line x1={upPos.x + upPos.width/2} y1={upY} x2={lowPos.x + lowPos.width/2} y2={lowY}
+                        stroke="#3f51b5" strokeWidth="2" markerEnd="url(#arrow)" />
+                  <text x={(upPos.x + upPos.width/2 + lowPos.x + lowPos.width/2) / 2} y={(upY+lowY)/2 - 10}
+                        fill="#3f51b5" fontSize="12">VC</text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
+    
+    function TruckFullEditor(){
+      const [msg, setMsg] = React.useState("");
+      const [editingId, setEditingId] = React.useState(null);
+      const [truckList, setTruckList] = React.useState([]);
+      const [globalPlatformCount, setGlobalPlatformCount] = React.useState(0);
+      const [form, setForm] = React.useState({
+        vin: "",
+        nickname: "FullSpec Truck",
+        model: "Peterbilt 389",
+        year: "2023",
+        truck_type: "semi",
+        coupling_type: "none",
+        gvwr: "40000",
+        loading_spots: "0",
+        deck_count: "1",
+        total_platforms: "3"
+      });
+      const [decks, setDecks] = React.useState([]);
+      const [verticalConns, setVerticalConns] = React.useState([]);
+    
+      React.useEffect(() => {
+        listTrucks().then(res => setTruckList(res))
+          .catch(err => setMsg("Error listing trucks: " + err.message));
+      }, []);
+    
+      React.useEffect(() => {
+        const dCount = parseInt(form.deck_count, 10);
+        if (dCount < 1) { setForm({ ...form, deck_count: "1" }); return; }
+        if (dCount > 2) { setForm({ ...form, deck_count: "2" }); return; }
+        if (decks.length < dCount) {
+          const needed = dCount - decks.length;
+          const arr = [...decks];
+          for (let i = 0; i < needed; i++) {
+            arr.push({
+              type: arr.length === 0 ? "upper_deck" : "lower_deck",
+              total_length: 0,
+              platforms: [],
+              joints: [],
+              platforms_allowed: 0,
+              accepted: false,
+              accent: false,
+              saved: false
+            });
+          }
+          setDecks(arr);
+        } else if (decks.length > dCount) {
+          setDecks(decks.slice(0, dCount));
+        }
+      }, [form.deck_count]);
+    
+      const handleForm = (field, val) => { setForm({ ...form, [field]: val }); };
+    
+      const removeTruck = async (id) => {
+        if (!confirm("Are you sure you want to remove this truck?")) return;
+        try {
+          await deleteTruck(id);
+          setMsg("Deleted truck " + id);
+          setTruckList(await listTrucks());
+        } catch(err) {
+          setMsg("Error: " + err.message);
+        }
+      };
+    
+      const loadTruck = async (id) => {
+        setMsg("Loading truck " + id);
+        try {
+          const doc = await getTruck(id);
+          setEditingId(doc.id);
+          setForm({
+            vin: doc.vin || "",
+            nickname: doc.nickname || "",
+            model: doc.model || "",
+            year: doc.year ? String(doc.year) : "2023",
+            truck_type: doc.truck_type || "semi",
+            coupling_type: doc.coupling_type || "none",
+            gvwr: doc.gvwr ? String(doc.gvwr) : "40000",
+            loading_spots: doc.loading_spots ? String(doc.loading_spots) : "0",
+            deck_count: doc.deck_count ? String(doc.deck_count) : "1",
+            total_platforms: doc.total_platforms ? String(doc.total_platforms) : "3"
+          });
+          const arr = [];
+          if (doc.upper_deck) arr.push(doc.upper_deck);
+          if (doc.lower_deck) arr.push(doc.lower_deck);
+          setDecks(arr);
+          const maxNum = arr.reduce((acc, dk) => {
+            dk.platforms.forEach(pl => {
+              const num = parseInt(pl.id.replace("Plat", ""), 10);
+              if (!isNaN(num) && num > acc) acc = num;
+            });
+            return acc;
+          }, 0);
+          setGlobalPlatformCount(maxNum);
+          setVerticalConns(doc.vertical_connections || []);
+          setMsg("Editing truck " + doc.id);
+        } catch(err) {
+          setMsg("Error loading truck: " + err.message);
+        }
+      };
+    
+      const removeDeck = (idx) => {
+        if (confirm("Are you sure you want to remove this deck?")) {
+          const arr = [...decks]; arr.splice(idx, 1);
+          setDecks(arr);
+        }
+      };
+      const handleDeckChange = (idx, upd) => {
+        const arr = [...decks];
+        arr[idx] = upd;
+        setDecks(arr);
+      };
+    
+      const addVC = () => {
+        setVerticalConns([...verticalConns, {
+          upper_platform_id: "",
+          lower_platform_id: "",
+          clearance_profile: {},
+          min_clearance: 6
+        }]);
+      };
+      const removeVC = (idx) => {
+        if (confirm("Are you sure you want to remove this vertical connection?")) {
+          const arr = [...verticalConns];
+          arr.splice(idx, 1);
+          setVerticalConns(arr);
+        }
+      };
+      const handleVCChange = (idx, upd) => {
+        const arr = [...verticalConns];
+        arr[idx] = upd;
+        setVerticalConns(arr);
+      };
+    
+      const validatePlatformCounts = () => {
+        const totalPlatforms = parseInt(form.total_platforms, 10);
+        if (totalPlatforms < 1) { alert("Total platforms must be at least 1."); return false; }
+        if (parseInt(form.deck_count, 10) === 1) {
+          if (decks[0].platforms.length < 1) {
+            alert("At least one platform is required on the deck.");
+            return false;
+          }
+          if (decks[0].platforms.length > totalPlatforms) {
+            alert("Number of platforms on the deck cannot exceed Total Platforms.");
+            return false;
+          }
+        } else if (parseInt(form.deck_count, 10) === 2) {
+          if (decks[0].platforms.length < 1 || decks[1].platforms.length < 1) {
+            alert("Each deck must have at least one platform.");
+            return false;
+          }
+          if ((decks[0].platforms.length + decks[1].platforms.length) > totalPlatforms) {
+            alert("Total number of platforms on both decks cannot exceed Total Platforms.");
+            return false;
+          }
+          if (decks[0].platforms.length > (totalPlatforms - 1)) {
+            alert("For two decks, the upper deck can have at most (Total Platforms - 1) platforms.");
+            return false;
+          }
+        }
+        return true;
+      };
+    
+      const doSaveTruck = async () => {
+        if (!validatePlatformCounts()) return;
+        const payload = {
+          vin: form.vin || null,
+          nickname: form.nickname,
+          model: form.model,
+          year: parseInt(form.year, 10),
+          truck_type: form.truck_type,
+          coupling_type: form.coupling_type,
+          gvwr: parseFloat(form.gvwr),
+          loading_spots: parseInt(form.loading_spots, 10),
+          deck_count: parseInt(form.deck_count, 10),
+          total_platforms: parseInt(form.total_platforms, 10)
+        };
+        if (decks[0]) payload.upper_deck = decks[0];
+        if (decks[1]) payload.lower_deck = decks[1];
+        if (verticalConns.length > 0) payload.vertical_connections = verticalConns;
+        try {
+          if (!editingId) {
+            const cr = await createTruck(payload);
+            setMsg("Truck successfully created! Truck ID=" + cr.id);
+          } else {
+            const upd = await updateTruck(editingId, payload);
+            setMsg("Truck successfully updated! Truck ID=" + upd.id);
+          }
+          setEditingId(null);
+          setForm({
+            vin: "",
+            nickname: "",
+            model: "",
+            year: "2023",
+            truck_type: "semi",
+            coupling_type: "none",
+            gvwr: "40000",
+            loading_spots: "0",
+            deck_count: "1",
+            total_platforms: "3"
+          });
+          setDecks([]);
+          setGlobalPlatformCount(0);
+          setVerticalConns([]);
+          setTruckList(await listTrucks());
+        } catch(err) {
+          setMsg("Error saving truck: " + err.message);
+        }
+      };
+    
+      return (
+        <div>
+          <div className="card">
+            <h2>{editingId ? "Edit Truck (Full Spec)" : "Create Truck (Full Spec)"}</h2>
+            {msg && <div>{msg}</div>}
+            <form onSubmit={(e) => { e.preventDefault(); }}>
+              <label>VIN (optional)</label>
+              <input value={form.vin} onChange={(e) => setForm({ ...form, vin: e.target.value })} />
+              <label>Nickname</label>
+              <input value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} required />
+              <label>Model</label>
+              <input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} required />
+              <label>Year</label>
+              <input type="number" value={form.year} onChange={(e) => setForm({ ...form, year: e.target.value })} required />
+              <label>Truck Type</label>
+              <select value={form.truck_type} onChange={(e) => setForm({ ...form, truck_type: e.target.value })}>
+                <option value="semi">semi</option>
+                <option value="stinger_head">stinger_head</option>
+                <option value="stinger_five">stinger_five</option>
+                <option value="semi_platform">semi_platform</option>
+                <option value="pickup">pickup</option>
+                <option value="towtruck">towtruck</option>
+              </select>
+              <label>Coupling Type</label>
+              <select value={form.coupling_type} onChange={(e) => setForm({ ...form, coupling_type: e.target.value })}>
+                <option value="none">none</option>
+                <option value="5th_wheel">5th_wheel</option>
+                <option value="gooseneck">gooseneck</option>
+                <option value="bumper_pool">bumper_pool</option>
+              </select>
+              <label>GVWR (lbs)</label>
+              <input type="number" value={form.gvwr} onChange={(e) => setForm({ ...form, gvwr: e.target.value })} />
+              <label>Loading Spots</label>
+              <input type="number" value={form.loading_spots} onChange={(e) => setForm({ ...form, loading_spots: e.target.value })} />
+              <label>Deck Count (1 or 2)</label>
+              <input type="number" value={form.deck_count} onChange={(e) => setForm({ ...form, deck_count: e.target.value })} />
+              <label>Total Platforms</label>
+              <input type="number" value={form.total_platforms} onChange={(e) => setForm({ ...form, total_platforms: e.target.value })} />
+              {/* Render decks */}
+              {decks.map((dk, i) => (
+                <div key={i} style={{ border: "1px dashed #ccc", padding: "1rem", margin: "1rem 0" }}>
+                  <DeckEditor deck={dk} onChangeDeck={(upd) => handleDeckChange(i, upd)} onRemoveDeck={() => removeDeck(i)} globalPlatformCount={globalPlatformCount} setGlobalPlatformCount={setGlobalPlatformCount} />
+                </div>
+              ))}
+              {/* Vertical connections */}
+              <h4>Vertical Connections</h4>
+              <button type="button" onClick={() => { if (confirm("Are you sure you want to add a vertical connection?")) addVC(); }}>+ Add Vertical Connection</button>
+              {verticalConns.map((vc, idx) => (
+                <VerticalConnectionEditor
+                  key={idx}
+                  vc={vc}
+                  onChangeVC={(upd) => { const arr = [...verticalConns]; arr[idx] = upd; setVerticalConns(arr); }}
+                  onRemove={() => removeVC(idx)}
+                  platformOptions={decks.flatMap(deck => deck.platforms)}
+                />
+              ))}
+            </form>
+            {verticalConns.length > 0 && (
+              <div>
+                <TruckDiagram decks={decks} verticalConns={verticalConns} />
+                <button type="button" onClick={() => { if (confirm("Are you sure you want to save the truck?")) doSaveTruck(); }} style={{ marginTop: "12px" }}>
+                  Save Truck
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="card">
+            <h2>Current Trucks List</h2>
+            {truckList.map((tk) => (
+              <div key={tk.id} style={{ border: "1px solid #ccc", background: "#f9fafb", padding: "1rem", marginBottom: "1rem" }}>
+                <div><strong>ID:</strong> {tk.id || ""}</div>
+                <div><strong>VIN:</strong> {tk.vin || "N/A"}</div>
+                <div><strong>Nickname:</strong> {tk.nickname || ""}</div>
+                <div><strong>Model:</strong> {tk.model || ""}</div>
+                <div><strong>Year:</strong> {tk.year || "?"}</div>
+                <div><strong>Truck Type:</strong> {tk.truck_type}</div>
+                <div><strong>Coupling Type:</strong> {tk.coupling_type}</div>
+                <div><strong>GVWR:</strong> {tk.gvwr}</div>
+                <div><strong>Loading Spots:</strong> {tk.loading_spots}</div>
+                <div><strong>Deck Count:</strong> {tk.deck_count}</div>
+                <br/>
+                <button style={{ marginRight: "1rem", background: "#eee" }} onClick={() => loadTruck(tk.id)}>
+                  Edit
+                </button>
+                <button style={{ background: "#ffe5e5" }} onClick={() => removeTruck(tk.id)}>
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
+    function ListTab(){
+      const [msg, setMsg] = React.useState("");
+      const [cars, setCars] = React.useState([]);
+      const [trucks, setTrucks] = React.useState([]);
+      const [trailers, setTrailers] = React.useState([]);
+      const loadAll = async () => {
+        setMsg("Loading...");
+        try {
+          const c = await listCars();
+          const t = await listTrucks();
+          const r = await listTrailers();
+          setCars(c); setTrucks(t); setTrailers(r);
+          setMsg(`Loaded cars=${c.length}, trucks=${t.length}, trailers=${r.length}`);
+        } catch(err) {
+          setMsg("Error: " + err.message);
+        }
+      };
+      React.useEffect(() => { loadAll(); }, []);
+      return (
+        <div className="card">
+          <h2>List All (Cars, Trucks, Trailers)</h2>
+          {msg && <div>{msg}</div>}
+          <button onClick={loadAll}>Reload</button>
+          <h3>Cars</h3>
+          <ul>
+            {cars.map(car => (
+              <li key={car.id}>ID={car.id}, VIN={car.vin}, Make={car.make}, Year={car.year}</li>
+            ))}
+          </ul>
+          <h3>Trucks</h3>
+          <ul>
+            {trucks.map(tk => (
+              <li key={tk.id}>ID={tk.id}, Nickname={tk.nickname}, Type={tk.truck_type}, Year={tk.year}</li>
+            ))}
+          </ul>
+          <h3>Trailers</h3>
+          <ul>
+            {trailers.map(tr => (
+              <li key={tr.id}>ID={tr.id}, Nickname={tr.nickname}, Year={tr.year}, Capacity={tr.capacity_in}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+    
+    function App(){
+      const [activeTab, setActiveTab] = React.useState("car");
+      const [dbStatus, setDbStatus] = React.useState("Checking DB...");
+      React.useEffect(() => { checkDB().then(st => setDbStatus(st)); }, []);
+      return (
+        <div>
+          <h1>CarLogix Full Debug Interface</h1>
+          <p style={{ fontStyle: "italic" }}>{dbStatus}</p>
+          <div className="tabs">
+            <button onClick={() => setActiveTab("car")}>Cars</button>
+            <button onClick={() => setActiveTab("truck")}>Trucks (Full Editor)</button>
+            <button onClick={() => setActiveTab("trailer")}>Trailers</button>
+            <button onClick={() => setActiveTab("list")}>List All</button>
+          </div>
+          {activeTab === "car" && <CarTab />}
+          {activeTab === "truck" && <TruckFullEditor />}
+          {activeTab === "trailer" && <TrailerTab />}
+          {activeTab === "list" && <ListTab />}
+        </div>
+      );
+    }
+    
+    console.log('Initializing React');
+    try {
+      const rootElement = document.getElementById('root');
+      if (!rootElement) { throw new Error('Root element not found'); }
+      console.log('Root element found, creating application');
+      const renderApp = () => {
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(
+          <React.StrictMode>
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
+          </React.StrictMode>
+        );
+      };
+      setTimeout(renderApp, 100);
+    } catch (error) {
+      console.error('Initialization error:', error);
+      document.body.innerHTML += `<div style="color:red;padding:20px">Initialization error: ${error.message}</div>`;
+    }
+  </script>
 </body>
 </html>
