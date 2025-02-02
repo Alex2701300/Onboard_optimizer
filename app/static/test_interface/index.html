@@ -5,11 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CarLogix Full Debug Interface</title>
   
-  <!-- Подключаем Babel через cdnjs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js" crossorigin></script>
-  <!-- Подключаем React и ReactDOM -->
+  <!-- Сначала подключаем React -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-development.js" crossorigin></script>
+  <!-- Затем Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Глобальный обработчик ошибок -->
+  <script>
+    window.onerror = function(msg, url, line, col, error) {
+      console.error('Global error:', msg, 'at', line + ':' + col);
+      document.body.innerHTML += `<div style="color:red;padding:20px">Error: ${msg} at ${line}:${col}</div>`;
+      return false;
+    };
+  </script>
   
   <style>
     :root {
@@ -1154,11 +1163,11 @@
     }
     
     console.log('Initializing React');
-    try {
-      const rootElement = document.getElementById('root');
-      if (!rootElement) { throw new Error('Root element not found'); }
-      console.log('Root element found, creating application');
-      const renderApp = () => {
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const rootElement = document.getElementById('root');
+        if (!rootElement) { throw new Error('Root element not found'); }
+        console.log('Root element found, creating application');
         const root = ReactDOM.createRoot(rootElement);
         root.render(
           <React.StrictMode>
@@ -1167,8 +1176,11 @@
             </ErrorBoundary>
           </React.StrictMode>
         );
-      };
-      setTimeout(renderApp, 100);
+      } catch (error) {
+        console.error('React initialization error:', error);
+        document.body.innerHTML += `<div style="color:red;padding:20px">React initialization error: ${error.message}</div>`;
+      }
+    });
     } catch (error) {
       console.error('Initialization error:', error);
       document.body.innerHTML += `<div style="color:red;padding:20px">Initialization error: ${error.message}</div>`;
