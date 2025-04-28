@@ -17,3 +17,19 @@ deploymentTarget = "cloudrun"
 [[ports]]
 localPort = 8000
 externalPort = 80
+
+[workflows]
+runButton = "Run"
+
+[[workflows.workflow]]
+name = "Run"
+author = 36806543
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"uvicorn.*main:app\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 main.py"
