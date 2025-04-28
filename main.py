@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from app.core.middleware import log_request_middleware
 
 from bson import ObjectId
 from json import JSONEncoder
@@ -77,6 +78,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Подключаем статику (чтобы раздавать index.html, JS, CSS и т.д.):
@@ -86,10 +88,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # Упрощённый middleware без try/except,
 # чтобы избежать внутренних конфликтов Starlette/AnyIO:
 @app.middleware("http")
-async def simple_middleware(request: Request, call_next):
-    response = await call_next(request)
-    return response
-
+async def middleware(request: Request, call_next):
+    return await log_request_middleware(request, call_next)
 
 @app.get("/", response_class=HTMLResponse)
 async def root():

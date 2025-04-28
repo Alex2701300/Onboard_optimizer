@@ -1,0 +1,25 @@
+name: Sync with Replit
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 */1 * * *'  # Синхронизация каждые 6 часов
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Push to Replit
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "https://github.com/YOUR_USERNAME/YOUR_REPO.git"
+          source_branch: "main"
+          destination_repo: "https://replit.com/YOUR_USERNAME/YOUR_REPL.git"
+          destination_branch: "main"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.REPLIT_SSH_KEY }}
