@@ -10,3 +10,5 @@ aiofiles==23.1.0
 pymongo==4.5.0
 bson
 python-dotenv
+boto3==1.28.40
+aioboto3==11.3.0  # Асинхронная версия boto3 для работы с FastAPI

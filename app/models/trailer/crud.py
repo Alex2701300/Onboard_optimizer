@@ -2,46 +2,82 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from app.db.mongodb import db
+from app.db.dynamodb import db  # Заменяем MongoDB на DynamoDB
 from app.models.trailer.schemas import TrailerCreateSchema, TrailerResponseSchema
 
 class TrailerCRUD:
     """
-    Логика для trailers, аналогичная cars (через uuid4).
+    Логика для trailers с использованием DynamoDB вместо MongoDB.
     """
 
     async def create_trailer(self, data: TrailerCreateSchema) -> Optional[TrailerResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is None.")
-
+        """Создает новый трейлер в DynamoDB."""
         doc = data.dict()
-        doc["_id"] = str(uuid.uuid4())
+        # Используем id вместо _id для DynamoDB
+        doc["id"] = str(uuid.uuid4())
         doc["type"] = "trailer"
         doc["created_at"] = datetime.utcnow()
         doc["updated_at"] = datetime.utcnow()
 
-        await coll.insert_one(doc)
-        new_doc = await coll.find_one({"_id": doc["_id"]})
+        await db.create_vehicle(doc)
+        new_doc = await db.get_vehicle(doc["id"])
         if new_doc:
+            # Обеспечиваем совместимость с TrailerResponseSchema
+            if "id" in new_doc and "_id" not in new_doc:
+                new_doc["_id"] = new_doc["id"]
+
             return TrailerResponseSchema(**new_doc)
         return None
 
     async def list_trailers(self) -> List[TrailerResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is None.")
-
-        docs = await coll.find({"type": "trailer"}).to_list(None)
-        if not docs:
+        """Возвращает список всех трейлеров из DynamoDB."""
+        vehicles = await db.list_vehicles()
+        if not vehicles:
             return []
 
+        # Фильтруем только трейлеры (type="trailer")
+        trailers = [v for v in vehicles if v.get("type") == "trailer"]
+
         results = []
-        for d in docs:
-            d["id"] = str(d["_id"])
+        for d in trailers:
+            # Обеспечиваем совместимость с TrailerResponseSchema
+            if "id" in d and "_id" not in d:
+                d["_id"] = d["id"]
+
             results.append(TrailerResponseSchema(**d))
         return results
 
-    # При желании, get_trailer, update_trailer, delete_trailer — делайте аналогично
+    async def get_trailer(self, trailer_id: str) -> Optional[TrailerResponseSchema]:
+        """Получает трейлер по ID из DynamoDB."""
+        doc = await db.get_vehicle(trailer_id)
+        if doc and doc.get("type") == "trailer":
+            # Обеспечиваем совместимость с TrailerResponseSchema
+            if "id" in doc and "_id" not in doc:
+                doc["_id"] = doc["id"]
 
+            return TrailerResponseSchema(**doc)
+        return None
+
+    async def update_trailer(self, trailer_id: str, updates: dict) -> Optional[TrailerResponseSchema]:
+        """Обновляет данные трейлера в DynamoDB."""
+        updates["updated_at"] = datetime.utcnow()
+        success = await db.update_vehicle(trailer_id, updates)
+        if not success:
+            return None
+
+        doc = await db.get_vehicle(trailer_id)
+        if doc:
+            # Обеспечиваем совместимость с TrailerResponseSchema
+            if "id" in doc and "_id" not in doc:
+                doc["_id"] = doc["id"]
+
+            return TrailerResponseSchema(**doc)
+        return None
+
+    async def delete_trailer(self, trailer_id: str) -> bool:
+        """Удаляет трейлер из DynamoDB."""
+        return await db.delete_vehicle(trailer_id)
+
+
+# Экземпляр CRUD для использования в API
 trailer_crud = TrailerCRUD()

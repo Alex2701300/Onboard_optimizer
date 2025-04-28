@@ -11,7 +11,7 @@ from bson import ObjectId
 from json import JSONEncoder
 
 # Подключение к БД (синглтон)
-from app.db.mongodb import db
+from app.db.dynamodb import db
 
 # Импорт ваших роутеров
 # Обратите внимание: в files:
@@ -43,13 +43,13 @@ class CustomJSONEncoder(JSONEncoder):
 async def lifespan(app: FastAPI):
     """
     Lifecycle приложения:
-    подключаемся к MongoDB при старте, закрываем при остановке.
+    подключаемся к DynamoDB при старте, закрываем при остановке.
     """
     try:
         connected = await db.connect_to_database()
         if not connected:
-            raise Exception("Failed to connect to MongoDB")
-        logger.info("MongoDB connected.")
+            raise Exception("Failed to connect to DynamoDB")
+        logger.info("DynamoDB connected.")
         yield
     except Exception as e:
         logger.error(f"Critical error: {str(e)}")
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
     finally:
         try:
             await db.close_database_connection()
-            logger.info("MongoDB disconnected.")
+            logger.info("DynamoDB disconnected.")
         except Exception as e:
             logger.error(f"Error during disconnect: {str(e)}")
 

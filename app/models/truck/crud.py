@@ -2,85 +2,81 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
-from app.db.mongodb import db
+from app.db.dynamodb import db  # Изменение импорта с mongodb на dynamodb
 from app.models.truck.schemas import TruckCreateSchema, TruckResponseSchema
 
 class TruckCRUD:
     """
-    Логика для trucks, аналогичная cars (через uuid4, без счётчиков).
+    Логика для trucks, с использованием DynamoDB вместо MongoDB.
     """
 
     async def create_truck(self, data: TruckCreateSchema) -> Optional[TruckResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is not init.")
-
+        """Создает новую запись грузовика в DynamoDB."""
         doc = data.dict()
-        # Вместо счётчика — uuid4 (как в cars)
-        doc["_id"] = str(uuid.uuid4())
-
+        # Используем id вместо _id для DynamoDB
+        doc["id"] = str(uuid.uuid4())
         doc["type"] = "truck"
         doc["created_at"] = datetime.utcnow()
         doc["updated_at"] = datetime.utcnow()
         doc["is_verified"] = False
         doc["ai_loader_ready"] = False
 
-        await coll.insert_one(doc)
-        new_doc = await coll.find_one({"_id": doc["_id"]})
+        await db.create_vehicle(doc)
+        new_doc = await db.get_vehicle(doc["id"])
         if new_doc:
+            # Обратите внимание, что DynamoDB возвращает документ с id, а не _id
+            # Но наш TruckResponseSchema ожидает поле _id
+            if "id" in new_doc and "_id" not in new_doc:
+                new_doc["_id"] = new_doc["id"]
             return TruckResponseSchema(**new_doc)
         return None
 
     async def list_trucks(self) -> List[TruckResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is not init.")
-
-        docs = await coll.find({"type": "truck"}).to_list(None)
-        if not docs:
+        """Возвращает список всех грузовиков из DynamoDB."""
+        vehicles = await db.list_vehicles()
+        if not vehicles:
             return []
 
+        # Фильтруем только documents с type="truck"
+        trucks = [v for v in vehicles if v.get("type") == "truck"]
+
         results = []
-        for d in docs:
-            # Переносим _id -> id, как в cars
-            d["id"] = str(d["_id"])
+        for d in trucks:
+            # Убедимся, что _id существует для совместимости со схемой
+            if "id" in d and "_id" not in d:
+                d["_id"] = d["id"]
             results.append(TruckResponseSchema(**d))
         return results
 
     async def get_truck(self, truck_id: str) -> Optional[TruckResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is not init.")
-
-        doc = await coll.find_one({"_id": truck_id, "type": "truck"})
-        if doc:
+        """Получает один грузовик по ID из DynamoDB."""
+        doc = await db.get_vehicle(truck_id)
+        if doc and doc.get("type") == "truck":
+            # Убедимся, что _id существует для совместимости
+            if "id" in doc and "_id" not in doc:
+                doc["_id"] = doc["id"]
             return TruckResponseSchema(**doc)
         return None
 
     async def update_truck(self, truck_id: str, updates: dict) -> Optional[TruckResponseSchema]:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is not init.")
-
+        """Обновляет данные грузовика в DynamoDB."""
         updates["updated_at"] = datetime.utcnow()
-        result = await coll.update_one(
-            {"_id": truck_id, "type": "truck"},
-            {"$set": updates}
-        )
-        if result.modified_count < 1:
+        success = await db.update_vehicle(truck_id, updates)
+        if not success:
             return None
 
-        doc = await coll.find_one({"_id": truck_id, "type": "truck"})
+        doc = await db.get_vehicle(truck_id)
         if doc:
+            # Убедимся, что _id существует для совместимости
+            if "id" in doc and "_id" not in doc:
+                doc["_id"] = doc["id"]
             return TruckResponseSchema(**doc)
         return None
 
     async def delete_truck(self, truck_id: str) -> bool:
-        coll = db.vehicles
-        if coll is None:
-            raise RuntimeError("MongoDB 'vehicles' is not init.")
+        """Удаляет грузовик из DynamoDB."""
+        return await db.delete_vehicle(truck_id)
 
-        result = await coll.delete_one({"_id": truck_id, "type": "truck"})
-        return (result.deleted_count > 0)
 
+# Экземпляр CRUD для использования в API
 truck_crud = TruckCRUD()
